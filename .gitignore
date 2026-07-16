@@ -28,3 +28,49 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Temporary files
+*.tmp
+*.bak
+*~
+*.log
+*.out
+!README.md
+!docs/*.md
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github/
+
+# IDE/Editor temp files
+*.swp
+*.swo
+*~
+
+# Temp files
+*.tmp
+*.bak
+*.log
+*.out
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE/Editor temp
+*.swp
+*.swo
+*~
