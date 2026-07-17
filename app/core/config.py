@@ -1,8 +1,9 @@
 """Application configuration using Pydantic Settings."""
 
 from pathlib import Path
+from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,10 +11,11 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=".env",  # Load from .env file
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        env_prefix="",  # No prefix for flexibility
     )
 
     # Application
@@ -21,16 +23,22 @@ class Settings(BaseSettings):
     app_env: str = Field(
         default="development", description="Environment: development, staging, production"
     )
-    debug: bool = Field(default=True, description="Debug mode")
+    debug: bool = Field(default=False, description="Debug mode (from env)")
     host: str = Field(default="0.0.0.0", description="Host to bind")
     port: int = Field(default=8000, description="Port to bind")
 
     # Database
     database_url: str = Field(
-        default="sqlite+aiosqlite:///./receipts.db",
+        default="sqlite+aiosqlite:///./data/receipts.db",
         description="Database connection URL (SQLite with aiosqlite for async)",
     )
     database_echo: bool = Field(default=False, description="Echo SQL queries")
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _validate_database_url(cls, v: str | Path) -> str:
+        """Ensure database_url is a string, not Path."""
+        return str(v) if isinstance(v, Path) else v
 
     # OpenRouter API
     openrouter_api_key: str = Field(
@@ -102,7 +110,7 @@ class Settings(BaseSettings):
     default_page_size: int = Field(default=20, description="Default page size for pagination")
     max_page_size: int = Field(default=100, description="Maximum page size for pagination")
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, __context: Any) -> None:
         """Create directories if they don't exist."""
         for dir_path in [
             self.unparsed_dir,
@@ -113,5 +121,14 @@ class Settings(BaseSettings):
             dir_path.mkdir(parents=True, exist_ok=True)
 
 
-# Global settings instance
-settings = Settings()
+def get_settings() -> Settings:
+    """Get settings instance (singleton pattern)."""
+    global _settings
+    if _settings is None:
+        _settings = Settings()
+    return _settings
+
+
+# Global settings instance (lazy initialization)
+_settings: Settings | None = None
+settings = Settings()  # For backward compatibility; use get_settings() for DI

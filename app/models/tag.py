@@ -20,7 +20,6 @@ class Tag(Base, TimestampMixin):
 
     # Tag identification
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
 
     # Display
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)  # Hex color #RRGGBB
@@ -43,4 +42,4 @@ class Tag(Base, TimestampMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<Tag(id={self.id}, name='{self.name}', slug='{self.slug}')>"
+        return f"<Tag(id={self.id}, name='{self.name}')>"

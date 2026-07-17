@@ -1,4 +1,4 @@
-"""Models package initialization."""
+"""Models package exports."""
 
 from app.models.base import Base, TimestampMixin
 from app.models.category import Category

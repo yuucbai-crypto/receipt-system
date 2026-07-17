@@ -3,19 +3,17 @@
 from app.db.session import (
     close_engine,
     create_engine,
+    create_session_factory,
     get_db_session,
-    get_engine,
-    get_session_factory,
 )
-from app.db.write_queue import WriteQueue, close_write_queue, get_write_queue
+from app.db.write_queue import WriteQueue, WriteQueueManager, create_write_queue_manager
 
 __all__ = [
     "create_engine",
-    "get_engine",
-    "get_session_factory",
+    "create_session_factory",
     "get_db_session",
     "close_engine",
     "WriteQueue",
-    "get_write_queue",
-    "close_write_queue",
+    "WriteQueueManager",
+    "create_write_queue_manager",
 ]

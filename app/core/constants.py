@@ -1,7 +1,6 @@
 """Application constants and enumerations."""
 
 from enum import StrEnum
-from pathlib import Path
 
 
 class AppEnvironment(StrEnum):
@@ -71,54 +70,9 @@ class FileExtension(StrEnum):
     BMP = ".bmp"
 
 
-# File system constants
-DEFAULT_DATA_DIR = Path("./data")
-DEFAULT_UNPARSED_DIR = DEFAULT_DATA_DIR / "unparsed"
-DEFAULT_UNAPPROVED_DIR = DEFAULT_DATA_DIR / "unapproved"
-DEFAULT_FAILED_DIR = DEFAULT_DATA_DIR / "failed"
-DEFAULT_APPROVED_DIR = DEFAULT_DATA_DIR / "approved"
-
-SUPPORTED_EXTENSIONS = {
-    FileExtension.JPG,
-    FileExtension.JPEG,
-    FileExtension.PNG,
-    FileExtension.WEBP,
-    FileExtension.TIFF,
-    FileExtension.BMP,
-}
-
-MAX_FILE_SIZE_MB = 50
-
-# OCR constants
-DEFAULT_OCR_LANGUAGE = "jpn+eng"
-DEFAULT_OCR_DPI = 300
-
-# Duplicate detection thresholds
-DEFAULT_DUPLICATE_THRESHOLD = 0.85
-DEFAULT_IMAGE_HASH_THRESHOLD = 0.95
-DEFAULT_OCR_SIMILARITY_THRESHOLD = 0.90
-
-# Pagination
-DEFAULT_PAGE_SIZE = 20
-MAX_PAGE_SIZE = 100
-
 # API
 API_VERSION = "v1"
 API_PREFIX = f"/api/{API_VERSION}"
-
-# OpenRouter
-DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
-DEFAULT_OPENROUTER_TIMEOUT = 60
-DEFAULT_OPENROUTER_MAX_RETRIES = 3
-
-# Database
-DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///./receipts.db"
-DEFAULT_DATABASE_ECHO = False
-
-# Watchdog
-DEFAULT_WATCHDOG_POLL_INTERVAL = 1.0
-DEFAULT_WATCHDOG_RECURSIVE = False
 
 # Health check
 HEALTH_CHECK_PATH = "/health"

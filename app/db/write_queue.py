@@ -6,15 +6,28 @@ when multiple async tasks try to write to SQLite concurrently.
 
 import asyncio
 import contextlib
+import time
+import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from typing import Any, Generic, TypeVar
+from dataclasses import dataclass, field
+from typing import Any, AsyncGenerator, Generic, TypeVar
 
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
 T = TypeVar("T")
+
+
+@dataclass
+class QueuedTask(Generic[T]):
+    """Represents a queued write task."""
+
+    task_id: str
+    coro_factory: Callable[[], Awaitable[T]]
+    future: asyncio.Future[T]
+    created_at: float = field(default_factory=time.time)
 
 
 class WriteQueue(Generic[T]):
@@ -30,6 +43,7 @@ class WriteQueue(Generic[T]):
         name: str = "db-write-queue",
         max_retries: int = 3,
         retry_delay: float = 0.1,
+        max_queue_size: int = 1000,
     ):
         """Initialize write queue.
 
@@ -37,15 +51,18 @@ class WriteQueue(Generic[T]):
             name: Queue name for logging
             max_retries: Maximum retries for locked database
             retry_delay: Base delay between retries (exponential backoff)
+            max_queue_size: Maximum queue size (prevents memory leaks)
         """
-        self._queue: asyncio.Queue[tuple[int, Callable[[], Awaitable[T]], asyncio.Future[T]]] = asyncio.Queue()
-        self._worker_task: asyncio.Task | None = None
-        self._running = False
         self._name = name
         self._max_retries = max_retries
         self._retry_delay = retry_delay
-        self._results: dict[int, asyncio.Future[T]] = {}
-        self._counter = 0
+        self._max_queue_size = max_queue_size
+
+        self._queue: asyncio.Queue[QueuedTask[T]] = asyncio.Queue(maxsize=max_queue_size)
+        self._worker_task: asyncio.Task[None] | None = None
+        self._running = False
+        self._closed = False
+        self._task_counter = 0
 
     @property
     def queue_size(self) -> int:
@@ -57,13 +74,22 @@ class WriteQueue(Generic[T]):
         """Check if queue worker is running."""
         return self._running
 
+    @property
+    def is_closed(self) -> bool:
+        """Check if queue is closed."""
+        return self._closed
+
     async def start(self) -> None:
         """Start the queue worker."""
         if self._running:
             logger.warning(
-                "Write queue already running", extra={"extra_fields": {"name": self._name}}
+                "Write queue already running",
+                extra={"extra_fields": {"name": self._name}},
             )
             return
+
+        if self._closed:
+            raise RuntimeError(f"Write queue '{self._name}' is closed and cannot be restarted")
 
         self._running = True
         self._worker_task = asyncio.create_task(self._worker(), name=f"{self._name}-worker")
@@ -86,7 +112,12 @@ class WriteQueue(Generic[T]):
         except TimeoutError:
             logger.warning(
                 "Write queue stop timeout, pending tasks may be lost",
-                extra={"extra_fields": {"name": self._name, "pending": self._queue.qsize()}},
+                extra={
+                    "extra_fields": {
+                        "name": self._name,
+                        "pending": self._queue.qsize(),
+                    }
+                },
             )
 
         # Cancel worker
@@ -95,33 +126,32 @@ class WriteQueue(Generic[T]):
             with contextlib.suppress(asyncio.CancelledError):
                 await self._worker_task
 
+        self._closed = True
         logger.info("Write queue stopped", extra={"extra_fields": {"name": self._name}})
 
     async def _worker(self) -> None:
         """Background worker that processes queued write operations."""
         while self._running:
-            task_id = None
-            coro_factory = None
-            future = None
+            task: QueuedTask[T] | None = None
             try:
-                task_id, coro_factory, future = await self._queue.get()
+                task = await self._queue.get()
 
                 if not self._running:
-                    # Queue is shutting down, task will not be processed
-                    # No need to call task_done() as we didn't process it
-                    # Put it back for any remaining workers (though there shouldn't be any)
-                    await self._queue.put((task_id, coro_factory, future))
+                    # Queue is shutting down, re-queue and exit
+                    await self._queue.put(task)
                     break
 
                 try:
-                    result = await self._execute_with_retry(coro_factory)
-                    future.set_result(result)
+                    result = await self._execute_with_retry(task.coro_factory)
+                    if not task.future.done():
+                        task.future.set_result(result)
                 except Exception as e:
-                    future.set_exception(e)  # type: ignore[arg-type]
+                    if not task.future.done():
+                        task.future.set_exception(e)
             except asyncio.CancelledError:
                 # Re-queue the task if we got one before cancellation
-                if task_id is not None and coro_factory is not None and future is not None:
-                    await self._queue.put((task_id, coro_factory, future))
+                if task is not None:
+                    await self._queue.put(task)
                 break
             except Exception as e:
                 logger.error(
@@ -129,11 +159,11 @@ class WriteQueue(Generic[T]):
                     extra={"extra_fields": {"name": self._name, "error": str(e)}},
                 )
                 # Ensure future is resolved with error if we have one
-                if future is not None and not future.done():
-                    future.set_exception(e)  # type: ignore[arg-type]
+                if task is not None and not task.future.done():
+                    task.future.set_exception(e)
             finally:
                 # Only call task_done() if we actually retrieved an item
-                if task_id is not None:
+                if task is not None:
                     self._queue.task_done()
 
     async def _execute_with_retry(self, coro_factory: Callable[[], Awaitable[T]]) -> T:
@@ -205,24 +235,40 @@ class WriteQueue(Generic[T]):
 
         Returns:
             Future that will be resolved with the result
+
+        Raises:
+            RuntimeError: If queue is not running
+            RuntimeError: If queue is full (backpressure)
         """
         if not self._running:
             raise RuntimeError(f"Write queue '{self._name}' is not running. Call start() first.")
 
+        if self._closed:
+            raise RuntimeError(f"Write queue '{self._name}' is closed")
+
+        if self._queue.full():
+            raise RuntimeError(f"Write queue '{self._name}' is full (backpressure)")
+
         # Create future first, then atomically increment counter and enqueue
         future: asyncio.Future[T] = asyncio.Future()
-        self._counter += 1
-        task_id = self._counter
+        self._task_counter += 1
+        task_id = f"{self._name}-{self._task_counter}-{uuid.uuid4().hex[:8]}"
 
         # Create a factory that binds arguments and returns a fresh coroutine each call
         def coro_factory() -> Awaitable[T]:
             return func(*args, **kwargs)
 
-        self._queue.put_nowait((task_id, coro_factory, future))
+        task = QueuedTask(
+            task_id=task_id,
+            coro_factory=coro_factory,
+            future=future,
+        )
+
+        self._queue.put_nowait(task)
         return future
 
     @asynccontextmanager
-    async def enqueue_context(self, coro_factory: Callable[[], Awaitable[T]]):
+    async def enqueue_context(self, coro_factory: Callable[[], Awaitable[T]]) -> AsyncGenerator[T, None]:
         """Context manager for enqueueing operations.
 
         Usage:
@@ -244,38 +290,78 @@ class WriteQueue(Generic[T]):
             pass
 
 
-# Global write queue instance
-_write_queue: WriteQueue | None = None
+class WriteQueueManager(Generic[T]):
+    """Manages write queue lifecycle for dependency injection."""
+
+    def __init__(
+        self,
+        name: str = "db-write-queue",
+        max_retries: int = 3,
+        retry_delay: float = 0.1,
+        max_queue_size: int = 1000,
+    ):
+        """Initialize write queue manager.
+
+        Args:
+            name: Queue name for logging
+            max_retries: Maximum retries for locked database
+            retry_delay: Base delay between retries
+            max_queue_size: Maximum queue size
+        """
+        self._queue: WriteQueue[T] = WriteQueue(
+            name=name,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            max_queue_size=max_queue_size,
+        )
+
+    @property
+    def queue(self) -> WriteQueue[Any]:
+        """Get the write queue instance."""
+        return self._queue
+
+    async def start(self) -> None:
+        """Start the write queue."""
+        await self._queue.start()
+
+    async def stop(self, timeout: float = 5.0) -> None:
+        """Stop the write queue."""
+        await self._queue.stop(timeout)
+
+    @asynccontextmanager
+    async def lifespan(self) -> AsyncGenerator[WriteQueue[Any], None]:
+        """Lifespan context manager for FastAPI."""
+        await self.start()
+        try:
+            yield self._queue
+        finally:
+            await self.stop()
 
 
-async def get_write_queue() -> WriteQueue:
-    """Get or create the global write queue."""
-    global _write_queue
-    if _write_queue is None:
-        _write_queue = WriteQueue()
-        await _write_queue.start()
-    return _write_queue
+async def create_write_queue_manager(
+    name: str = "db-write-queue",
+    max_retries: int = 3,
+    retry_delay: float = 0.1,
+    max_queue_size: int = 1000,
+) -> WriteQueueManager[Any]:
+    """Factory function to create and start write queue manager.
 
+    Args:
+        name: Queue name for logging
+        max_retries: Maximum retries for locked database
+        retry_delay: Base delay between retries
+        max_queue_size: Maximum queue size
 
-async def close_write_queue() -> None:
-    """Close the global write queue."""
-    global _write_queue
-    if _write_queue is not None:
-        await _write_queue.stop()
-        _write_queue = None
-
-
-@asynccontextmanager
-async def write_transaction():
-    """Context manager for executing write operations sequentially.
-
-    Usage:
-        async with write_transaction() as queue:
-            await queue.enqueue(lambda: session.add(obj))
-            await queue.enqueue(lambda: session.commit())
-
-    Yields:
-        WriteQueue instance
+    Returns:
+        Started WriteQueueManager
     """
-    queue = await get_write_queue()
-    yield queue
+    manager: WriteQueueManager[Any] = WriteQueueManager[
+        Any
+    ](
+        name=name,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+        max_queue_size=max_queue_size,
+    )
+    await manager.start()
+    return manager
