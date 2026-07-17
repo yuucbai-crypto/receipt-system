@@ -4,6 +4,7 @@ Implements RULE-BE-003: Receipt image analysis (date, store, amount, category, t
 Implements RULE-BE-012: AI analysis API retry logic (RULE-ERR-001).
 Implements RULE-BE-014: External API (OpenRouter) calling implementation.
 Implements RULE-ERR-001: Retry on failure, move to failed folder on 3 retries, notify WebUI.
+Implements RULE-RV-006: Input validation for AI analysis parameters.
 Implements RULE-GEN-020: Type hints on all Python code.
 Implements RULE-GEN-021: Single responsibility principle.
 """
@@ -12,9 +13,10 @@ import asyncio
 import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Optional
 
 import httpx
@@ -113,6 +115,21 @@ class AIAnalysisError(Exception):
         super().__init__(message)
         self.retry_count = retry_count
         self.original_error = original_error
+
+    def with_retry_count(self, retry_count: int) -> "AIAnalysisError":
+        """Return a new instance with updated retry count.
+
+        Args:
+            retry_count: The retry attempt number (0-indexed).
+
+        Returns:
+            New AIAnalysisError instance with updated retry_count.
+        """
+        return AIAnalysisError(
+            str(self),
+            retry_count=retry_count,
+            original_error=self.original_error,
+        )
 
 
 class OpenRouterClient:
@@ -298,6 +315,7 @@ class AIAnalysisService:
     Implements RULE-BE-012: Retry logic (RULE-ERR-001).
     Implements RULE-BE-014: OpenRouter API integration.
     Implements RULE-ERR-001: Retry 3 times, move to failed folder, notify WebUI.
+    Implements RULE-RV-006: Input validation for AI analysis parameters.
     Single responsibility: Orchestrate AI analysis with retry logic.
     """
 
@@ -326,6 +344,37 @@ class AIAnalysisService:
             },
         )
 
+    async def _validate_analysis_inputs(
+        self,
+        ocr_text: str,
+        image_path: str,
+        receipt_id: Optional[int] = None,
+    ) -> None:
+        """Validate inputs for AI analysis.
+
+        Implements RULE-RV-006: Input validation for AI analysis parameters.
+
+        Args:
+            ocr_text: Text extracted from OCR.
+            image_path: Path to receipt image.
+            receipt_id: Optional receipt ID for logging.
+
+        Raises:
+            ValueError: If inputs are invalid.
+        """
+        if not ocr_text or not ocr_text.strip():
+            raise ValueError("OCR text cannot be empty")
+
+        if not image_path or not image_path.strip():
+            raise ValueError("Image path cannot be empty")
+
+        # Check if image file exists
+        if not Path(image_path).exists():
+            raise ValueError(f"Image file not found: {image_path}")
+
+        if receipt_id is not None and receipt_id <= 0:
+            raise ValueError("Receipt ID must be positive integer if provided")
+
     async def analyze_receipt(
         self,
         ocr_text: str,
@@ -335,6 +384,7 @@ class AIAnalysisService:
         """Analyze receipt using AI with retry logic.
 
         Implements RULE-ERR-001: Retry up to 3 times on failure.
+        Implements RULE-RV-006: Input validation for AI analysis parameters.
 
         Args:
             ocr_text: Text extracted from OCR.
@@ -344,8 +394,24 @@ class AIAnalysisService:
         Returns:
             AIAnalysisResponse with extracted data or error.
         """
+        # Validate inputs first
+        try:
+            await self._validate_analysis_inputs(ocr_text, image_path, receipt_id)
+        except ValueError as e:
+            logger.error(
+                "AI analysis input validation failed",
+                extra={"receipt_id": receipt_id, "error": str(e)},
+            )
+            return AIAnalysisResponse(
+                success=False,
+                data=None,
+                error=f"Input validation failed: {e}",
+                model=self._settings.openrouter_model,
+                processing_time_ms=0,
+            )
+
         start_time = time.perf_counter()
-        last_error: Optional[Exception] = None
+        last_error: Optional[AIAnalysisError] = None
 
         for attempt in range(self._retry_config.max_retries + 1):
             try:
@@ -376,13 +442,15 @@ class AIAnalysisService:
                 return response
 
             except AIAnalysisError as e:
-                last_error = e
+                # Update retry count in the error for tracking
+                last_error = e.with_retry_count(attempt)
                 logger.warning(
                     "AI analysis attempt failed",
                     extra={
                         "receipt_id": receipt_id,
                         "attempt": attempt + 1,
                         "error": str(e),
+                        "retry_count": attempt,
                     },
                 )
 
@@ -403,10 +471,18 @@ class AIAnalysisService:
                             "receipt_id": receipt_id,
                             "total_attempts": attempt + 1,
                             "error": str(e),
+                            "original_error": str(e.original_error) if e.original_error else None,
                         },
                     )
 
-        # All retries exhausted
+        # All retries exhausted - notify WebUI per RULE-ERR-001-3
+        await self._notify_webui_failure(
+            receipt_id=receipt_id,
+            image_path=image_path,
+            error=last_error,
+            total_attempts=self._retry_config.max_retries + 1,
+        )
+
         processing_time_ms = int((time.perf_counter() - start_time) * 1000)
         error_msg = f"AI analysis failed after {self._retry_config.max_retries + 1} attempts"
         if last_error:
@@ -418,6 +494,40 @@ class AIAnalysisService:
             error=error_msg,
             model=self._settings.openrouter_model,
             processing_time_ms=processing_time_ms,
+        )
+
+    async def _notify_webui_failure(
+        self,
+        receipt_id: Optional[int],
+        image_path: str,
+        error: Optional[AIAnalysisError],
+        total_attempts: int,
+    ) -> None:
+        """Notify WebUI of AI analysis failure.
+
+        Implements RULE-ERR-001-3: Notify WebUI on failure after retries exhausted.
+        This is a placeholder for WebUI notification integration.
+        In production, this would send a WebSocket message or push notification.
+
+        Args:
+            receipt_id: Optional receipt ID.
+            image_path: Path to the failed image.
+            error: The last error that occurred.
+            total_attempts: Total number of attempts made.
+        """
+        # TODO: Integrate with WebUI notification system (WebSocket, SSE, etc.)
+        # For now, log the notification event which can be picked up by log monitoring
+        logger.error(
+            "WEBUI_NOTIFICATION: AI analysis failed - notify user",
+            extra={
+                "notification_type": "ai_analysis_failure",
+                "receipt_id": receipt_id,
+                "image_path": image_path,
+                "error_message": str(error) if error else "Unknown error",
+                "total_attempts": total_attempts,
+                "original_error": str(error.original_error) if error and error.original_error else None,
+                "timestamp": time.time(),
+            },
         )
 
     async def _perform_analysis(

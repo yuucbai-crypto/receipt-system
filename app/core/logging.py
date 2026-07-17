@@ -6,8 +6,6 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from app.core.config import settings
-
 
 class JsonFormatter(logging.Formatter):
     """JSON log formatter for structured logging."""
@@ -60,23 +58,28 @@ class TextFormatter(logging.Formatter):
         return base
 
 
-def setup_logging() -> None:
-    """Configure application logging (INFO/WARNING/ERROR levels)."""
-    log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+def setup_logging(log_level: str = "INFO", log_format: str = "json") -> None:
+    """Configure application logging (INFO/WARNING/ERROR levels).
+
+    Args:
+        log_level: Log level (DEBUG, INFO, WARNING, ERROR)
+        log_format: Log format (json or text)
+    """
+    level = getattr(logging, log_level.upper(), logging.INFO)
 
     # Root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
+    root_logger.setLevel(level)
 
     # Clear existing handlers
     root_logger.handlers.clear()
 
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(log_level)
+    console_handler.setLevel(level)
 
     # Choose formatter based on config
-    formatter = JsonFormatter() if settings.log_format.lower() == "json" else TextFormatter()
+    formatter = JsonFormatter() if log_format.lower() == "json" else TextFormatter()
 
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
@@ -92,7 +95,7 @@ def setup_logging() -> None:
     logger.info(
         "Logging configured",
         extra={
-            "extra_fields": {"log_level": settings.log_level, "log_format": settings.log_format}
+            "extra_fields": {"log_level": log_level, "log_format": log_format}
         },
     )
 

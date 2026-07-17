@@ -1,6 +1,8 @@
 """Tests for AI Analysis Service."""
 
 import json
+import tempfile
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -180,15 +182,15 @@ class TestOpenRouterClient:
         }
 
         with patch.object(client, "_get_client") as mock_get_client:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(
+            mock_client_obj = AsyncMock()
+            mock_client_obj.post = AsyncMock(
                 return_value=MagicMock(
                     status_code=200,
                     json=lambda: mock_response,
                     raise_for_status=lambda: None,
                 )
             )
-            mock_get_client.return_value = mock_client
+            mock_get_client.return_value = mock_client_obj
 
             result = await client.analyze_receipt("test prompt")
             assert result == mock_response
@@ -197,9 +199,9 @@ class TestOpenRouterClient:
     async def test_analyze_receipt_timeout(self, client: OpenRouterClient) -> None:
         """Test API timeout handling."""
         with patch.object(client, "_get_client") as mock_get_client:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
-            mock_get_client.return_value = mock_client
+            mock_client_obj = AsyncMock()
+            mock_client_obj.post = AsyncMock(side_effect=httpx.TimeoutException("Timeout"))
+            mock_get_client.return_value = mock_client_obj
 
             with pytest.raises(AIAnalysisError) as exc_info:
                 await client.analyze_receipt("test prompt")
@@ -209,16 +211,16 @@ class TestOpenRouterClient:
     async def test_analyze_receipt_http_error(self, client: OpenRouterClient) -> None:
         """Test HTTP error handling."""
         with patch.object(client, "_get_client") as mock_get_client:
-            mock_client = AsyncMock()
+            mock_client_obj = AsyncMock()
             mock_response = MagicMock()
             mock_response.status_code = 401
             mock_response.text = "Unauthorized"
-            mock_client.post = AsyncMock(
+            mock_client_obj.post = AsyncMock(
                 side_effect=httpx.HTTPStatusError(
                     "401 Unauthorized", request=MagicMock(), response=mock_response
                 )
             )
-            mock_get_client.return_value = mock_client
+            mock_get_client.return_value = mock_client_obj
 
             with pytest.raises(AIAnalysisError) as exc_info:
                 await client.analyze_receipt("test prompt")
@@ -243,9 +245,16 @@ class TestAIAnalysisService:
         retry_config = RetryConfig(max_retries=2, base_delay=0.01, max_delay=0.1)
         return AIAnalysisService(retry_config=retry_config, client=mock_client)
 
+    @pytest.fixture
+    def temp_image(self) -> Path:
+        """Create a temporary image file for testing."""
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+            f.write(b"fake image content")
+            return Path(f.name)
+
     @pytest.mark.asyncio
     async def test_analyze_receipt_success(
-        self, service: AIAnalysisService
+        self, service: AIAnalysisService, temp_image: Path
     ) -> None:
         """Test successful receipt analysis."""
         mock_response = AIAnalysisResponse(
@@ -267,7 +276,7 @@ class TestAIAnalysisService:
 
         # Mock time.perf_counter to return increasing values
         with patch("time.perf_counter", side_effect=[0.0, 1.5]):
-            result = await service.analyze_receipt("OCR text", "/path/image.jpg", receipt_id=1)
+            result = await service.analyze_receipt("OCR text", str(temp_image), receipt_id=1)
 
         assert result.success is True
         assert result.data is not None
@@ -276,7 +285,7 @@ class TestAIAnalysisService:
 
     @pytest.mark.asyncio
     async def test_analyze_receipt_retry_on_failure(
-        self, service: AIAnalysisService
+        self, service: AIAnalysisService, temp_image: Path
     ) -> None:
         """Test retry logic on failure."""
         error = AIAnalysisError("API error")
@@ -290,20 +299,20 @@ class TestAIAnalysisService:
             )]
         )
 
-        result = await service.analyze_receipt("OCR text", "/path/image.jpg")
+        result = await service.analyze_receipt("OCR text", str(temp_image))
 
         assert result.success is True
         assert service._perform_analysis.call_count == 3
 
     @pytest.mark.asyncio
     async def test_analyze_receipt_all_retries_exhausted(
-        self, service: AIAnalysisService
+        self, service: AIAnalysisService, temp_image: Path
     ) -> None:
         """Test failure after all retries exhausted."""
         error = AIAnalysisError("Persistent error")
         service._perform_analysis = AsyncMock(side_effect=error)
 
-        result = await service.analyze_receipt("OCR text", "/path/image.jpg")
+        result = await service.analyze_receipt("OCR text", str(temp_image))
 
         assert result.success is False
         assert "failed after" in result.error.lower()
@@ -311,10 +320,10 @@ class TestAIAnalysisService:
 
     @pytest.mark.asyncio
     async def test_analyze_receipt_empty_ocr_text(
-        self, service: AIAnalysisService
+        self, service: AIAnalysisService, temp_image: Path
     ) -> None:
         """Test handling of empty OCR text."""
-        result = await service.analyze_receipt("", "/path/image.jpg")
+        result = await service.analyze_receipt("", str(temp_image))
 
         assert result.success is False
         assert "empty" in result.error.lower()
@@ -379,3 +388,10 @@ class TestAIAnalysisError:
         original = ValueError("Original")
         error = AIAnalysisError("Test error", original_error=original)
         assert error.original_error is original
+
+    def test_error_with_retry_count_method(self) -> None:
+        """Test with_retry_count method creates new error with updated count."""
+        error = AIAnalysisError("Test error", retry_count=0)
+        new_error = error.with_retry_count(2)
+        assert new_error.retry_count == 2
+        assert new_error.original_error is error.original_error

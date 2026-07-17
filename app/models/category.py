@@ -22,11 +22,10 @@ class Category(Base, TimestampMixin):
     code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
 
-    # Hierarchy support
+    # Hierarchy support (simplified - single level)
     parent_id: Mapped[int | None] = mapped_column(
         ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Display
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

@@ -114,3 +114,27 @@ class DuplicateCheck(Base, TimestampMixin):
             f"target={self.target_receipt_id}, score={self.composite_score}, "
             f"duplicate={self.is_duplicate}, status={self.status.value})>"
         )
+
+    def mark_failed(self, error: Exception) -> None:
+        """Mark the duplicate check as failed with error details.
+
+        Args:
+            error: Exception that caused the failure
+        """
+        self.status = DuplicateCheckStatus.FAILED
+        self.error_message = str(error)
+        self.processing_completed_at = datetime.utcnow()
+
+    def mark_completed(self, is_duplicate: bool, composite_score: float) -> None:
+        """Mark the duplicate check as completed.
+
+        Args:
+            is_duplicate: Whether duplicate was detected
+            composite_score: Composite similarity score
+        """
+        self.status = (
+            DuplicateCheckStatus.HAS_DUPLICATES if is_duplicate else DuplicateCheckStatus.NO_DUPLICATES
+        )
+        self.is_duplicate = is_duplicate
+        self.composite_score = composite_score
+        self.processing_completed_at = datetime.utcnow()

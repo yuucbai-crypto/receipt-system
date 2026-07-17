@@ -30,12 +30,13 @@ if TYPE_CHECKING:
 class ReceiptStatus(StrEnum):
     """Receipt processing status."""
 
-    UNPARSED = "unparsed"  # 未解析フォルダ
-    PARSING = "parsing"  # 解析中
-    UNAPPROVED = "unapproved"  # 未承認フォルダ（重複チェック待ち/中）
-    APPROVED = "approved"  # 承認済み（確定申告用フォルダへ移動済み）
-    REJECTED = "rejected"  # 却下（失敗フォルダへ移動）
-    FAILED = "failed"  # 処理失敗
+    UNPARSED = "unparsed"
+    PARSING = "parsing"
+    UNPARSED_FAILED = "unparsed_failed"
+    UNAPPROVED = "unapproved"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    FAILED = "failed"
 
 
 class Receipt(Base, TimestampMixin):
@@ -101,7 +102,7 @@ class Receipt(Base, TimestampMixin):
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Relationships
-    category: Mapped["Category"] = relationship(
+    category: Mapped["Category | None"] = relationship(
         "Category", back_populates="receipts", lazy="selectin"
     )
     tags: Mapped[list["Tag"]] = relationship(
@@ -123,7 +124,7 @@ class Receipt(Base, TimestampMixin):
         "RejectionReason", back_populates="receipt", lazy="selectin", uselist=False
     )
 
-    # Indexes
+    # Indexes - simplified, removed duplicates
     __table_args__ = (
         Index("ix_receipts_date_store_amount", "receipt_date", "store_name", "total_amount"),
         Index("ix_receipts_status_date", "status", "receipt_date"),
@@ -150,8 +151,6 @@ class ReceiptTag(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-
-
 
     def __repr__(self) -> str:
         return f"<ReceiptTag(receipt_id={self.receipt_id}, tag_id={self.tag_id})>"

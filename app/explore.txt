@@ -1,0 +1,7 @@
+# App directory contents explore
+
+Let me explore the app directory structure to understand the project organization.
+
+I need to find the model files in app/models/ directory.
+
+Let me check what's available in the app directory.

@@ -12,23 +12,21 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
-from app.core.config import settings
+from app.core.config import Settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Global engine and session factory
-_engine: AsyncEngine | None = None
-_session_factory: async_sessionmaker[AsyncSession] | None = None
 
+def create_engine(settings: Settings) -> AsyncEngine:
+    """Create async SQLAlchemy engine with SQLite WAL mode.
 
-def create_engine() -> AsyncEngine:
-    """Create async SQLAlchemy engine with SQLite WAL mode."""
-    global _engine
+    Args:
+        settings: Application settings
 
-    if _engine is not None:
-        return _engine
-
+    Returns:
+        AsyncEngine instance
+    """
     # SQLite specific connect args for WAL mode and better concurrency
     connect_args = {
         "check_same_thread": False,
@@ -36,7 +34,7 @@ def create_engine() -> AsyncEngine:
 
     # For SQLite, we use NullPool to avoid connection pooling issues with async
     # WAL mode is enabled via PRAGMA in init_db
-    _engine = create_async_engine(
+    engine = create_async_engine(
         settings.database_url,
         echo=settings.database_echo,
         connect_args=connect_args,
@@ -48,31 +46,37 @@ def create_engine() -> AsyncEngine:
         "Database engine created",
         extra={"extra_fields": {"database_url": settings.database_url}},
     )
-    return _engine
+    return engine
 
 
-def get_session_factory() -> async_sessionmaker[AsyncSession]:
-    """Get or create async session factory."""
-    global _session_factory
+def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    """Create async session factory.
 
-    if _session_factory is not None:
-        return _session_factory
+    Args:
+        engine: Async engine instance
 
-    engine = create_engine()
-    _session_factory = async_sessionmaker(
+    Returns:
+        Async session factory
+    """
+    return async_sessionmaker(
         engine,
         class_=AsyncSession,
         expire_on_commit=False,
         autoflush=False,
         autocommit=False,
     )
-    return _session_factory
 
 
 @asynccontextmanager
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get async database session context manager."""
-    session_factory = get_session_factory()
+async def get_session(session_factory: async_sessionmaker[AsyncSession]) -> AsyncGenerator[AsyncSession, None]:
+    """Get async database session context manager.
+
+    Args:
+        session_factory: Async session factory
+
+    Yields:
+        AsyncSession instance
+    """
     async with session_factory() as session:
         # Enable foreign keys for each session
         await session.execute(text("PRAGMA foreign_keys=ON;"))
@@ -86,25 +90,40 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """FastAPI dependency for database session."""
-    async with get_session() as session:
+async def get_db_session(session_factory: async_sessionmaker[AsyncSession]) -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency for database session.
+
+    Args:
+        session_factory: Async session factory
+
+    Yields:
+        AsyncSession instance
+    """
+    async with get_session(session_factory) as session:
         yield session
 
 
-async def close_engine() -> None:
-    """Close database engine connections."""
-    global _engine, _session_factory
+async def close_engine(engine: AsyncEngine | None) -> None:
+    """Close database engine connections.
 
-    if _engine is not None:
-        await _engine.dispose()
-        _engine = None
-        _session_factory = None
+    Args:
+        engine: Async engine instance (or None)
+    """
+    if engine is not None:
+        await engine.dispose()
         logger.info("Database engine closed")
 
 
-def get_engine() -> AsyncEngine:
-    """Get the global engine instance."""
-    if _engine is None:
-        return create_engine()
-    return _engine
+def get_engine(settings: Settings) -> AsyncEngine:
+    """Create and return a new engine instance.
+
+    Note: This creates a new engine each call. For long-lived applications,
+    prefer creating the engine once at startup and reusing it.
+
+    Args:
+        settings: Application settings
+
+    Returns:
+        AsyncEngine instance
+    """
+    return create_engine(settings)

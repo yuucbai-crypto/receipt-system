@@ -81,11 +81,27 @@ class ReceiptAnalyzerConfig:
     move_on_success: bool = True
     min_ocr_confidence: float = 10.0
 
+    @classmethod
+    def from_settings(cls) -> "ReceiptAnalyzerConfig":
+        """Create config from application settings.
+
+        Returns:
+            ReceiptAnalyzerConfig instance with directories from settings.
+        """
+        settings = get_settings()
+        return cls(
+            unparsed_dir=settings.unparsed_dir,
+            unapproved_dir=settings.unapproved_dir,
+            failed_dir=settings.failed_dir,
+            approved_dir=settings.approved_dir,
+        )
+
 
 class ImageFileManager:
     """Manages file operations for receipt images.
 
-    Single responsibility: File moving, hashing, and naming operations.
+    Single responsibility: File moving, hashing, naming, locking, and duplicate detection.
+    Implements RULE-ERR-001: In-flight file locking and duplicate detection.
     """
 
     def __init__(self, config: ReceiptAnalyzerConfig) -> None:
@@ -96,6 +112,9 @@ class ImageFileManager:
         """
         self._config = config
         self._settings = get_settings()
+        self._in_flight: dict[str, asyncio.Lock] = {}
+        self._processed_hashes: set[str] = set()
+        self._lock = asyncio.Lock()
 
     def compute_image_hash(self, file_path: Path) -> str:
         """Compute SHA-256 hash of image file.
@@ -173,6 +192,81 @@ class ImageFileManager:
         # Limit length
         return text[:50]
 
+    async def acquire_file_lock(self, file_path: Path) -> asyncio.Lock:
+        """Acquire a lock for the given file to prevent concurrent processing.
+
+        Implements RULE-ERR-001: In-flight file locking.
+
+        Args:
+            file_path: Path to the file to lock.
+
+        Returns:
+            An asyncio.Lock that must be released after processing.
+        """
+        file_key = str(file_path.resolve())
+        async with self._lock:
+            if file_key not in self._in_flight:
+                self._in_flight[file_key] = asyncio.Lock()
+            lock = self._in_flight[file_key]
+        await lock.acquire()
+        return lock
+
+    def release_file_lock(self, file_path: Path, lock: asyncio.Lock) -> None:
+        """Release a file lock after processing.
+
+        Args:
+            file_path: Path to the file that was locked.
+            lock: The lock to release.
+        """
+        lock.release()
+        file_key = str(file_path.resolve())
+        # Clean up if lock is free and no waiters
+        async def _cleanup() -> None:
+            async with self._lock:
+                if file_key in self._in_flight:
+                    if not self._in_flight[file_key].locked() and len(self._in_flight[file_key]._waiters) == 0:
+                        del self._in_flight[file_key]
+        # Schedule cleanup (fire and forget)
+        asyncio.create_task(_cleanup())
+
+    async def check_and_register_duplicate(self, file_path: Path) -> tuple[bool, Optional[str]]:
+        """Check for duplicate files and register the hash.
+
+        Implements duplicate detection based on image hash (RULE-ERR-001).
+
+        Args:
+            file_path: Path to the file to check.
+
+        Returns:
+            Tuple of (is_duplicate, existing_hash).
+            If is_duplicate is True, existing_hash contains the hash of the duplicate.
+        """
+        file_hash = self.compute_image_hash(file_path)
+        async with self._lock:
+            if file_hash in self._processed_hashes:
+                return True, file_hash
+            self._processed_hashes.add(file_hash)
+            return False, file_hash
+
+    def register_processed_hash(self, file_hash: str) -> None:
+        """Register a hash as processed.
+
+        Args:
+            file_hash: The hash to register.
+        """
+        self._processed_hashes.add(file_hash)
+
+    def is_duplicate_hash(self, file_hash: str) -> bool:
+        """Check if a hash has already been processed.
+
+        Args:
+            file_hash: The hash to check.
+
+        Returns:
+            True if the hash was already processed.
+        """
+        return file_hash in self._processed_hashes
+
     def move_to_failed(self, source_path: Path) -> Path:
         """Move file to failed directory.
 
@@ -183,6 +277,9 @@ class ImageFileManager:
 
         Returns:
             Destination path.
+
+        Raises:
+            OSError: If file move fails.
         """
         self._config.failed_dir.mkdir(parents=True, exist_ok=True)
         dest_path = self._config.failed_dir / source_path.name
@@ -209,6 +306,9 @@ class ImageFileManager:
 
         Returns:
             Destination path.
+
+        Raises:
+            OSError: If file move fails.
         """
         self._config.unapproved_dir.mkdir(parents=True, exist_ok=True)
         dest_path = self._config.unapproved_dir / new_filename
@@ -260,12 +360,7 @@ class ReceiptAnalyzer:
             file_manager: File manager instance.
         """
         self._settings = get_settings()
-        self._config = config or ReceiptAnalyzerConfig(
-            unparsed_dir=self._settings.unparsed_dir,
-            unapproved_dir=self._settings.unapproved_dir,
-            failed_dir=self._settings.failed_dir,
-            approved_dir=self._settings.approved_dir,
-        )
+        self._config = config or ReceiptAnalyzerConfig.from_settings()
 
         self._ocr_service = ocr_service or OCRService()
         self._ai_service = ai_service or AIAnalysisService()
@@ -305,7 +400,21 @@ class ReceiptAnalyzer:
         start_time = time.perf_counter()
         logger.info("Starting receipt analysis", extra={"image_path": str(image_path)})
 
+        # In-flight file locking and duplicate detection (RULE-ERR-001)
+        file_lock = await self._file_manager.acquire_file_lock(image_path)
         try:
+            is_duplicate, file_hash = await self._file_manager.check_and_register_duplicate(image_path)
+            if is_duplicate:
+                logger.warning(
+                    "Duplicate file detected, skipping processing",
+                    extra={"path": str(image_path), "hash": file_hash[:16]},
+                )
+                return ReceiptAnalysisResult(
+                    success=False,
+                    error=f"Duplicate file detected (hash: {file_hash[:16]}...)",
+                    processing_time_ms=int((time.perf_counter() - start_time) * 1000),
+                )
+
             # Step 1: OCR Processing (RULE-BE-004)
             ocr_result = await self._perform_ocr(image_path)
 
@@ -337,7 +446,13 @@ class ReceiptAnalyzer:
                 )
 
                 if move_file and self._config.move_on_failure:
-                    self._file_manager.move_to_failed(image_path)
+                    try:
+                        self._file_manager.move_to_failed(image_path)
+                    except OSError as e:
+                        logger.error(
+                            "Failed to move file to failed directory after AI failure",
+                            extra={"path": str(image_path), "error": str(e)},
+                        )
 
                 return ReceiptAnalysisResult(
                     success=False,
@@ -353,7 +468,13 @@ class ReceiptAnalyzer:
                 error_msg = "AI analysis succeeded but returned no data"
                 logger.error(error_msg, extra={"path": str(image_path)})
                 if move_file and self._config.move_on_failure:
-                    self._file_manager.move_to_failed(image_path)
+                    try:
+                        self._file_manager.move_to_failed(image_path)
+                    except OSError as e:
+                        logger.error(
+                            "Failed to move file to failed directory after empty AI data",
+                            extra={"path": str(image_path), "error": str(e)},
+                        )
                 return ReceiptAnalysisResult(
                     success=False,
                     ocr_result=ocr_result,
@@ -392,9 +513,17 @@ class ReceiptAnalyzer:
                     tags=ai_data.tags,
                     image_hash=receipt.image_hash,
                 )
-                new_path = self._file_manager.move_to_unapproved(image_path, new_filename)
-                receipt.stored_filename = new_filename
-                receipt.file_path = str(new_path)
+                try:
+                    new_path = self._file_manager.move_to_unapproved(image_path, new_filename)
+                    receipt.stored_filename = new_filename
+                    receipt.file_path = str(new_path)
+                except OSError as e:
+                    logger.error(
+                        "Failed to move file to unapproved directory",
+                        extra={"path": str(image_path), "dest": new_filename, "error": str(e)},
+                    )
+                    # Don't return failure here - the analysis succeeded, just file move failed
+                    # The file remains in unparsed_dir for retry
 
             processing_time_ms = int((time.perf_counter() - start_time) * 1000)
             logger.info(
@@ -424,12 +553,21 @@ class ReceiptAnalyzer:
                 extra={"path": str(image_path), "error": str(e)},
             )
             if move_file and self._config.move_on_failure:
-                self._file_manager.move_to_failed(image_path)
+                try:
+                    self._file_manager.move_to_failed(image_path)
+                except OSError as move_error:
+                    logger.error(
+                        "Failed to move file to failed directory after exception",
+                        extra={"path": str(image_path), "error": str(move_error)},
+                    )
             return ReceiptAnalysisResult(
                 success=False,
                 error=f"Analysis failed: {e}",
                 processing_time_ms=int((time.perf_counter() - start_time) * 1000),
             )
+        finally:
+            # Always release the file lock
+            self._file_manager.release_file_lock(image_path, file_lock)
 
     async def _perform_ocr(self, image_path: Path) -> OCRResult:
         """Perform OCR with graceful failure handling.

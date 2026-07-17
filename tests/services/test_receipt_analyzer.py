@@ -198,6 +198,27 @@ class TestImageFileManager:
         assert dest.exists()
         assert dest != existing
 
+    @pytest.mark.asyncio
+    async def test_acquire_and_release_file_lock(self, file_manager: ImageFileManager, sample_image: Path) -> None:
+        """Test file lock acquisition and release."""
+        lock = await file_manager.acquire_file_lock(sample_image)
+        assert lock.locked()
+        file_manager.release_file_lock(sample_image, lock)
+        assert not lock.locked()
+
+    @pytest.mark.asyncio
+    async def test_check_and_register_duplicate(self, file_manager: ImageFileManager, sample_image: Path) -> None:
+        """Test duplicate detection and registration."""
+        # First check - not duplicate
+        is_dup, file_hash = await file_manager.check_and_register_duplicate(sample_image)
+        assert is_dup is False
+        assert file_hash is not None
+
+        # Second check - should be duplicate now
+        is_dup, file_hash = await file_manager.check_and_register_duplicate(sample_image)
+        assert is_dup is True
+        assert file_hash is not None
+
 
 class TestReceiptAnalyzer:
     """Tests for ReceiptAnalyzer."""
@@ -226,13 +247,17 @@ class TestReceiptAnalyzer:
         return classifier
 
     @pytest.fixture
-    def mock_file_manager(self) -> MagicMock:
-        """Create mock file manager."""
-        manager = MagicMock()
+    def mock_file_manager(self) -> AsyncMock:
+        """Create mock file manager with async methods."""
+        manager = AsyncMock()
         manager.compute_image_hash = MagicMock(return_value="abcdef1234567890")
         manager.generate_stored_filename = MagicMock(return_value="20260715_店_1000円_消耗品費_tag_abc12345.jpg")
         manager.move_to_unapproved = MagicMock()
         manager.move_to_failed = MagicMock()
+        # Async methods for file locking and duplicate detection
+        manager.acquire_file_lock = AsyncMock()
+        manager.release_file_lock = MagicMock()
+        manager.check_and_register_duplicate = AsyncMock(return_value=(False, "abcdef1234567890"))
         return manager
 
     @pytest.fixture
@@ -241,7 +266,7 @@ class TestReceiptAnalyzer:
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
         mock_category_classifier: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         tmp_path: Path,
     ) -> ReceiptAnalyzer:
         """Create ReceiptAnalyzer with mocked dependencies."""
@@ -273,7 +298,7 @@ class TestReceiptAnalyzer:
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
         mock_category_classifier: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         sample_image: Path,
     ) -> None:
         """Test successful receipt analysis pipeline."""
@@ -334,7 +359,10 @@ class TestReceiptAnalyzer:
         assert receipt.status == ReceiptStatus.UNAPPROVED
 
         # Verify file manager called
+        mock_file_manager.acquire_file_lock.assert_awaited_once()
+        mock_file_manager.check_and_register_duplicate.assert_awaited_once()
         mock_file_manager.move_to_unapproved.assert_called_once()
+        mock_file_manager.release_file_lock.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_analyze_receipt_ai_failure_moves_to_failed(
@@ -342,7 +370,7 @@ class TestReceiptAnalyzer:
         analyzer: ReceiptAnalyzer,
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         sample_image: Path,
     ) -> None:
         """Test AI failure after retries moves file to failed."""
@@ -415,7 +443,7 @@ class TestReceiptAnalyzer:
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
         mock_category_classifier: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         sample_image: Path,
     ) -> None:
         """Test OCR complete failure returns empty result."""
@@ -443,7 +471,7 @@ class TestReceiptAnalyzer:
         self,
         analyzer: ReceiptAnalyzer,
         mock_ocr_service: MagicMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         sample_image: Path,
     ) -> None:
         """Test unexpected exception handling."""
@@ -460,7 +488,7 @@ class TestReceiptAnalyzer:
         self,
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         tmp_path: Path,
         sample_image: Path,
     ) -> None:
@@ -503,7 +531,7 @@ class TestReceiptAnalyzer:
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
         mock_category_classifier: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         tmp_path: Path,
         sample_image: Path,
     ) -> None:
@@ -522,6 +550,11 @@ class TestReceiptAnalyzer:
             config=config,
             file_manager=mock_file_manager,
         )
+
+        mock_ocr_service.extract_text_with_fallback.return_value = OCRResult(
+            text="text", confidence=80.0, language="jpn+eng"
+        )
+        mock_ocr_service.has_text.return_value = True
 
         mock_ai_service.analyze_receipt.return_value = AIAnalysisResponse(
             success=True,
@@ -644,7 +677,7 @@ class TestReceiptAnalyzer:
         mock_ocr_service: MagicMock,
         mock_ai_service: AsyncMock,
         mock_category_classifier: AsyncMock,
-        mock_file_manager: MagicMock,
+        mock_file_manager: AsyncMock,
         tmp_path: Path,
     ) -> None:
         """Test async context manager."""
