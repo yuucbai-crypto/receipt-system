@@ -1,6 +1,6 @@
 """Duplicate check model definition."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -123,7 +123,7 @@ class DuplicateCheck(Base, TimestampMixin):
         """
         self.status = DuplicateCheckStatus.FAILED
         self.error_message = str(error)
-        self.processing_completed_at = datetime.utcnow()
+        self.processing_completed_at = datetime.now(timezone.utc)
 
     def mark_completed(self, is_duplicate: bool, composite_score: float) -> None:
         """Mark the duplicate check as completed.
@@ -137,4 +137,4 @@ class DuplicateCheck(Base, TimestampMixin):
         )
         self.is_duplicate = is_duplicate
         self.composite_score = composite_score
-        self.processing_completed_at = datetime.utcnow()
+        self.processing_completed_at = datetime.now(timezone.utc)

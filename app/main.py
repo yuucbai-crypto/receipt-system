@@ -2,34 +2,20 @@
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.api.v1 import duplicate_check, file_management, receipt_approval, search
 from app.core.config import Settings, get_settings
 from app.core.logging import get_logger, setup_logging
 from app.db.init_db import close_db, init_db_from_settings
 from app.db.session import close_engine, create_engine, create_session_factory
+from app.state import get_app_state
 
 logger = get_logger(__name__)
-
-
-class AppState:
-    """Application state container for dependency injection."""
-
-    def __init__(self) -> None:
-        self.engine: AsyncEngine | None = None
-        self.session_factory: async_sessionmaker[AsyncSession] | None = None
-        self.settings: Settings | None = None
-
-
-_app_state = AppState()
-
-
-def get_app_state() -> AppState:
-    """Get application state singleton."""
-    return _app_state
 
 
 async def get_settings_dep() -> Settings | None:
@@ -91,6 +77,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Include API routers
+    app.include_router(duplicate_check.router, prefix="/api/v1")
+    app.include_router(receipt_approval.router, prefix="/api/v1")
+    app.include_router(file_management.router, prefix="/api/v1")
+    app.include_router(search.router, prefix="/api/v1")
+
     @app.get("/health", tags=["Health"], summary="ヘルスチェック")
     async def health_check() -> JSONResponse:
         """Health check endpoint.
@@ -105,7 +97,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             content={
                 "status": "healthy",
                 "version": "0.1.0",
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             },
         )
 
