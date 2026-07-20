@@ -10,6 +10,14 @@ import AppImagePreview from './ui/AppImagePreview.vue'
 const uiStore = useUIStore()
 const receiptsStore = useReceiptsStore()
 
+// Props
+const props = defineProps({
+  receiptId: {
+    type: Number,
+    required: false
+  }
+})
+
 // Data
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -23,25 +31,8 @@ const loadReceipt = async (id: number) => {
   error.value = null
   
   try {
-    // TODO: API呼び出しを実装
-    // const response = await receiptsStore.getReceipt(id)
-    // receiptData.value = response.data
-    
-    console.log(`Loading receipt ${id}...`)
-    
-    // デモ用のダミーデータ
-    receiptData.value = {
-      id: 1,
-      date: '2026-07-15',
-      store: '○○スーパー',
-      amount: '¥2,480',
-      category: '消耗品費',
-      status: '承認済み',
-      ocr_text: '店舗名：○○スーパー\n日付：2026年7月15日\n金額：2,480円\n商品：牛乳 1000円、パン 800円、卵 680円',
-      ai_comment: 'このレシートは日常的な生活費のため、消耗品費として分類します。',
-      tags: ['日用品', '食費'],
-      image_url: 'https://picsum.photos/800/600'
-    }
+    const response = await receiptsStore.getReceipt(id)
+    receiptData.value = response.data
     
   } catch (err) {
     error.value = 'レシート詳細の読み込みに失敗しました'
@@ -57,11 +48,29 @@ const handleImagePreview = (src: string) => {
   imagePreviewOpen.value = true
 }
 
+const handleApprove = () => {
+  // TODO: Implement approval functionality
+  uiStore.showSuccess('承認が完了しました')
+  console.log('Approve receipt:', receiptData.value?.id)
+}
+
+const handleReject = () => {
+  // TODO: Implement rejection functionality
+  uiStore.showSuccess('却下処理が完了しました')
+  console.log('Reject receipt:', receiptData.value?.id)
+}
+
+const handleReanalyze = () => {
+  // TODO: Implement re-analysis functionality
+  uiStore.showSuccess('再解析処理が開始されました')
+  console.log('Re-analyze receipt:', receiptData.value?.id)
+}
+
 // Lifecycle
 onMounted(() => {
-  // TODO: ルートパラメータからIDを取得してloadReceiptを呼び出す
-  const receiptId = 1; // デモ用
-  loadReceipt(receiptId)
+  if (props.receiptId) {
+    loadReceipt(props.receiptId)
+  }
 })
 </script>
 
@@ -69,9 +78,17 @@ onMounted(() => {
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold text-gray-900">レシート詳細</h2>
-      <AppButton variant="secondary" size="sm">
-        編集
-      </AppButton>
+      <div class="flex gap-2">
+        <AppButton variant="secondary" size="sm" @click="handleReanalyze" data-testid="receipt-detail-reanalyze">
+          再解析
+        </AppButton>
+        <AppButton variant="primary" size="sm" @click="handleApprove" data-testid="receipt-detail-approve">
+          承認
+        </AppButton>
+        <AppButton variant="danger" size="sm" @click="handleReject" data-testid="receipt-detail-reject">
+          却下
+        </AppButton>
+      </div>
     </div>
 
     <div v-if="loading" class="bg-white rounded-xl border border-gray-200 p-6">
@@ -93,6 +110,7 @@ onMounted(() => {
               :alt="'レシート画像'" 
               class="w-full h-auto cursor-pointer"
               @click="handleImagePreview(receiptData.image_url)"
+              data-testid="receipt-detail-image"
             />
           </div>
         </div>
@@ -101,6 +119,10 @@ onMounted(() => {
         <div>
           <h3 class="text-lg font-medium text-gray-900 mb-3">レシート情報</h3>
           <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-gray-600">ID:</span>
+              <span class="font-medium">{{ receiptData.id }}</span>
+            </div>
             <div class="flex justify-between">
               <span class="text-gray-600">日付:</span>
               <span class="font-medium">{{ receiptData.date }}</span>
@@ -128,7 +150,7 @@ onMounted(() => {
       <!-- OCR Text -->
       <div>
         <h3 class="text-lg font-medium text-gray-900 mb-3">OCRテキスト</h3>
-        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
+        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap" data-testid="receipt-detail-ocr">
           {{ receiptData.ocr_text }}
         </div>
       </div>
@@ -136,7 +158,7 @@ onMounted(() => {
       <!-- AI Comment -->
       <div>
         <h3 class="text-lg font-medium text-gray-900 mb-3">AIコメント</h3>
-        <div class="bg-blue-50 rounded-lg p-4">
+        <div class="bg-blue-50 rounded-lg p-4" data-testid="receipt-detail-ai-comment">
           {{ receiptData.ai_comment }}
         </div>
       </div>
@@ -149,9 +171,33 @@ onMounted(() => {
             v-for="(tag, index) in receiptData.tags" 
             :key="index"
             class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
+            data-testid="receipt-detail-tag"
           >
             {{ tag }}
           </span>
+        </div>
+      </div>
+
+      <!-- Metadata -->
+      <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-3">メタデータ</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-medium mb-2">ファイル情報</h4>
+            <div class="space-y-1 text-sm">
+              <div><span class="text-gray-600">ファイル名:</span> {{ receiptData.file_name }}</div>
+              <div><span class="text-gray-600">ファイルサイズ:</span> {{ receiptData.file_size }} bytes</div>
+              <div><span class="text-gray-600">作成日時:</span> {{ receiptData.created_at }}</div>
+            </div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-medium mb-2">解析情報</h4>
+            <div class="space-y-1 text-sm">
+              <div><span class="text-gray-600">OCR解析日時:</span> {{ receiptData.ocr_processed_at }}</div>
+              <div><span class="text-gray-600">AI解析日時:</span> {{ receiptData.ai_processed_at }}</div>
+              <div><span class="text-gray-600">解析状態:</span> {{ receiptData.processing_status }}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -162,6 +208,7 @@ onMounted(() => {
       :src="previewImage"
       title="レシート画像プレビュー"
       @close="imagePreviewOpen = false"
+      data-testid="receipt-detail-image-preview"
     />
   </div>
 </template>
