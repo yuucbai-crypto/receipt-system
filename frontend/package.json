@@ -1,0 +1,47 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "generate:api": "npx openapi-typescript-codegen -i ../openapi.json -o src/api --client axios --useUnionTypes --indent 2",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .vue,.ts,.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@headlessui/vue": "^1.7.23",
+    "axios": "^1.18.1",
+    "pinia": "^3.0.0",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "vue": "^3.5.39"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^24.13.2",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/eslint-config-typescript": "^14.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "eslint-plugin-vue": "^9.0.0",
+    "jsdom": "^24.0.0",
+    "openapi-typescript-codegen": "^0.31.0",
+    "prettier": "^3.0.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vitest": "^2.0.0",
+    "vue-tsc": "^3.3.5"
+  },
+  "description": "This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.",
+  "main": "eslint.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
