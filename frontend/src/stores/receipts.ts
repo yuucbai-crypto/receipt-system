@@ -135,7 +135,7 @@ export const useReceiptsStore = defineStore('receipts', () => {
       const response = await apiGetReceipts()
       // Transform SearchResultItem[] to Receipt[]
       const transformedReceipts: Receipt[] = response.data.map((item: SearchResultItem) => ({
-        id: String(item.receipt_id),
+        id: item.receipt_id.toString(),
         date: item.receipt_date || '',
         store: item.store_name || '',
         amount: item.total_amount || 0,
@@ -215,7 +215,7 @@ export const useReceiptsStore = defineStore('receipts', () => {
       const response = await apiGetDuplicateChecks()
       const duplicates: DuplicateReceipt[] = response.data.map((item: SearchResultItem) => ({
         receipt: {
-          id: String(item.receipt_id),
+          id: item.receipt_id.toString(),
           date: item.receipt_date || '',
           store: item.store_name || '',
           amount: item.total_amount || 0,
@@ -273,7 +273,7 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setError(null)
     try {
       const response = await apiGetApprovedFiles()
-      return response.data.map((item: ApprovedFileListResponse['items'][0]) => ({
+      return response.data.map((item: ApprovedFileInfo) => ({
         id: item.filepath, // Use filepath as id
         fileName: item.filename,
         date: item.modified_at.split('T')[0], // Extract date from modified_at
