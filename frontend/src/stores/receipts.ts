@@ -1,17 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { SearchResultItem } from '@/api/models/SearchResultItem'
-import type { ApprovedFileListResponse } from '@/api/models/ApprovedFileListResponse'
-import {
-  getReceipts as apiGetReceipts,
-  getReceipt as apiGetReceipt,
-  approveReceipt as apiApproveReceipt,
-  rejectReceipt as apiRejectReceipt,
-  getDuplicateChecks as apiGetDuplicateChecks,
-  approveDuplicateCheck as apiApproveDuplicateCheck,
-  rejectDuplicateCheck as apiRejectDuplicateCheck,
-  getApprovedFiles as apiGetApprovedFiles,
-} from '@/api/services/receipts'
+import type { DuplicateCheckListResponse } from '@/api/models/DuplicateCheckListResponse'
+import { ReceiptsService } from '@/api/services/ReceiptsService'
+import { DuplicateCheckService } from '@/api/services/DuplicateCheckService'
+import { ReceiptApprovalService } from '@/api/services/ReceiptApprovalService'
+import { FileManagementService } from '@/api/services/FileManagementService'
 
 export interface Receipt {
   id: string
@@ -32,15 +25,6 @@ export interface DuplicateReceipt {
 export interface DuplicateCheckResult {
   duplicates: DuplicateReceipt[]
   score: number
-}
-
-export interface ApprovedFileInfo {
-  id: string
-  fileName: string
-  date: string
-  store: string
-  amount: number
-  category: string
 }
 
 export interface ReceiptsState {
@@ -73,6 +57,15 @@ export interface RejectReceiptPayload {
 
 export interface CheckDuplicatesPayload {
   receiptId: string
+}
+
+export interface ApprovedFileInfoUI {
+  id: string
+  fileName: string
+  date: string
+  store: string
+  amount: number
+  category: string
 }
 
 export const useReceiptsStore = defineStore('receipts', () => {
@@ -132,19 +125,26 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await apiGetReceipts()
-      // Transform SearchResultItem[] to Receipt[]
-      const transformedReceipts: Receipt[] = response.data.map((item: SearchResultItem) => ({
-        id: item.receipt_id.toString(),
+      const response = await ReceiptsService.listReceiptsApiV1ReceiptsGet(
+        null,
+        null,
+        null,
+        null,
+        currentPage.value,
+        pageSize.value
+      )
+      // Transform ReceiptResponse[] to Receipt[]
+      const transformedReceipts: Receipt[] = response.items.map((item) => ({
+        id: item.id.toString(),
         date: item.receipt_date || '',
         store: item.store_name || '',
         amount: item.total_amount || 0,
-        category: item.category || '',
-        status: 'pending' as const, // Search result doesn't have status
+        category: item.category_name || '',
+        status: item.status as 'pending' | 'approved' | 'rejected',
         tags: item.tags || [],
         imageUrl: undefined,
       }))
-      setReceipts({ receipts: transformedReceipts, total: transformedReceipts.length })
+      setReceipts({ receipts: transformedReceipts, total: response.total })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'レシート一覧の取得に失敗しました'
       setError(message)
@@ -157,15 +157,16 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await apiGetReceipt(parseInt(id, 10))
-      const item = response.data
+      const item = await ReceiptsService.getReceiptApiV1ReceiptsReceiptIdGet(
+        parseInt(id, 10)
+      )
       return {
-        id: String(item.receipt_id),
+        id: String(item.id),
         date: item.receipt_date || '',
         store: item.store_name || '',
         amount: item.total_amount || 0,
-        category: item.category || '',
-        status: 'pending' as const,
+        category: item.category_name || '',
+        status: item.status as 'pending' | 'approved' | 'rejected',
         tags: item.tags || [],
         imageUrl: undefined,
       }
@@ -182,7 +183,11 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading(true)
     setError(null)
     try {
-      await apiApproveReceipt(parseInt(payload.receiptId, 10), payload.comment)
+      await ReceiptApprovalService.approveReceiptApiV1ReceiptApprovalApprovePost({
+        receipt_id: parseInt(payload.receiptId, 10),
+        approve: true,
+        user_note: payload.comment,
+      })
       return { success: true }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '承認に失敗しました'
@@ -197,7 +202,14 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading(true)
     setError(null)
     try {
-      await apiRejectReceipt(parseInt(payload.receiptId, 10), payload.reason)
+      await ReceiptApprovalService.rejectReceiptApiV1ReceiptApprovalRejectPost(
+        null,
+        {
+          receipt_id: parseInt(payload.receiptId, 10),
+          reason_code: payload.reason,
+          reason_text: payload.reason,
+        }
+      )
       return { success: true }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '却下に失敗しました'
@@ -208,23 +220,27 @@ export const useReceiptsStore = defineStore('receipts', () => {
     }
   }
 
-  const checkDuplicates = async (): Promise<DuplicateCheckResult> => {
+  const checkDuplicates = async (payload: CheckDuplicatesPayload): Promise<DuplicateCheckResult> => {
     setLoading(true)
     setError(null)
     try {
-      const response = await apiGetDuplicateChecks()
-      const duplicates: DuplicateReceipt[] = response.data.map((item: SearchResultItem) => ({
+      const receiptId = parseInt(payload.receiptId, 10)
+      const response = await DuplicateCheckService.getReceiptDuplicateChecksApiV1DuplicateCheckReceiptReceiptIdChecksGet(
+        receiptId
+      )
+      // response is Array<DuplicateCheckListResponse> - transform to DuplicateCheckResult
+      const duplicates: DuplicateReceipt[] = response.map((item: DuplicateCheckListResponse) => ({
         receipt: {
-          id: item.receipt_id.toString(),
-          date: item.receipt_date || '',
-          store: item.store_name || '',
-          amount: item.total_amount || 0,
-          category: item.category || '',
+          id: item.target_receipt_id.toString(),
+          date: '',
+          store: '',
+          amount: 0,
+          category: '',
           status: 'pending' as const,
-          tags: item.tags || [],
+          tags: [],
           imageUrl: undefined,
         },
-        score: item.score,
+        score: item.composite_score || 0,
       }))
       const result: DuplicateCheckResult = { duplicates, score: duplicates.length > 0 ? duplicates[0].score : 0 }
       setDuplicateCheckResult(result)
@@ -242,7 +258,13 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading(true)
     setError(null)
     try {
-      await apiApproveDuplicateCheck(parseInt(id, 10), comment)
+      await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
+        parseInt(id, 10),
+        {
+          user_confirmed: true,
+          user_note: comment,
+        }
+      )
       return { success: true }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '重複チェック承認に失敗しました'
@@ -257,7 +279,13 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading(true)
     setError(null)
     try {
-      await apiRejectDuplicateCheck(parseInt(id, 10), reason)
+      await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
+        parseInt(id, 10),
+        {
+          user_confirmed: false,
+          user_note: reason,
+        }
+      )
       return { success: true }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '重複チェック却下に失敗しました'
@@ -268,19 +296,23 @@ export const useReceiptsStore = defineStore('receipts', () => {
     }
   }
 
-  const fetchApprovedFiles = async (): Promise<ApprovedFileInfo[]> => {
+  const fetchApprovedFiles = async (): Promise<ApprovedFileInfoUI[]> => {
     setLoading(true)
     setError(null)
     try {
-      const response = await apiGetApprovedFiles()
-      return response.data.map((item: ApprovedFileInfo) => ({
-        id: item.filepath, // Use filepath as id
+      const response = await FileManagementService.listApprovedFilesApiV1FileManagementListApprovedPost({
+        page: 1,
+        page_size: 20,
+      })
+      const files: ApprovedFileInfoUI[] = response.items.map((item) => ({
+        id: item.filepath,
         fileName: item.filename,
-        date: item.modified_at.split('T')[0], // Extract date from modified_at
-        store: '', // Not available in ApprovedFileInfo
-        amount: 0, // Not available
+        date: item.modified_at.split('T')[0],
+        store: '',
+        amount: 0,
         category: item.category_folder,
       }))
+      return files
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'ファイル一覧の取得に失敗しました'
       setError(message)
