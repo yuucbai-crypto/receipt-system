@@ -1,266 +1,308 @@
-<script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { useUIStore } from '../stores/ui'
-import { useReceiptsStore } from '../stores/receipts'
-import AppLoading from './ui/AppLoading.vue'
-import AppTable from './ui/AppTable.vue'
-import AppButton from './ui/AppButton.vue'
-import AppModal from './ui/AppModal.vue'
-import ReceiptDetailView from './ReceiptDetailView.vue'
-
-// Store
-const uiStore = useUIStore()
-const receiptsStore = useReceiptsStore()
-
-// Data
-const loading = ref(false)
-const error = ref<string | null>(null)
-const tableColumns = ref([
-  { key: 'id', header: 'ID', sortable: true },
-  { key: 'date', header: '日付', sortable: true },
-  { key: 'store', header: '店舗名', sortable: true },
-  { key: 'amount', header: '金額', sortable: true, class: 'text-right' },
-  { key: 'category', header: '勘定科目' },
-  { key: 'status', header: 'ステータス' },
-])
-const tableRows = ref<any[]>([])
-const pagination = ref({
-  page: 1,
-  pageSize: 10,
-  total: 0,
-})
-const sort = ref({
-  by: 'date',
-  order: 'desc' as 'asc' | 'desc'
-})
-const filters = ref({
-  dateFrom: '',
-  dateTo: '',
-  category: '',
-  tag: '',
-  status: '',
-})
-
-// Modal for detail view
-const showDetailModal = ref(false)
-const selectedReceipt = ref<any>(null)
-
-// Methods
-const loadReceipts = async (page: number = 1) => {
-  loading.value = true
-  error.value = null
-  
-  try {
-    const response = await receiptsStore.getReceipts({
-      page,
-      pageSize: pagination.value.pageSize,
-      sortBy: sort.value.by,
-      sortOrder: sort.value.order,
-      ...filters.value,
-    })
-    
-    tableRows.value = response.data.items
-    pagination.value.total = response.data.total
-    pagination.value.page = page
-    
-  } catch (err) {
-    error.value = 'レシート一覧の読み込みに失敗しました'
-    uiStore.showError('エラーが発生しました')
-    console.error(err)
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleSort = (key: string, order: 'asc' | 'desc') => {
-  sort.value.by = key
-  sort.value.order = order
-  loadReceipts(pagination.value.page)
-}
-
-const handlePageChange = (page: number) => {
-  loadReceipts(page)
-}
-
-const handleRowClick = (row: any) => {
-  selectedReceipt.value = row
-  showDetailModal.value = true
-}
-
-const handleFilterChange = (key: string, value: string) => {
-  filters.value[key] = value
-  // Reset to first page when filtering
-  loadReceipts(1)
-}
-
-const resetFilters = () => {
-  filters.value = {
-    dateFrom: '',
-    dateTo: '',
-    category: '',
-    tag: '',
-    status: '',
-  }
-  loadReceipts(1)
-}
-
-// Watch for filter changes
-watch(filters, () => {
-  // Filtering is handled by the loadReceipts function when filters change
-}, { deep: true })
-
-// Lifecycle
-onMounted(() => {
-  loadReceipts()
-})
-</script>
-
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-900">レシート一覧</h2>
-      <AppButton variant="primary" size="sm" data-testid="receipt-list-add-button">
-        新規追加
+  <div class="receipt-list-view">
+    <h1>レシート一覧</h1>
+    
+    <!-- フィルター -->
+    <div class="filters" data-testid="receipt-list-filters">
+      <AppInput 
+        v-model="filters.searchTerm"
+        placeholder="検索..."
+        data-testid="search-input"
+      />
+      
+      <AppInput 
+        v-model="filters.category"
+        placeholder="勘定科目"
+        data-testid="category-filter"
+      />
+      
+      <AppInput 
+        v-model="filters.tag"
+        placeholder="タグ"
+        data-testid="tag-filter"
+      />
+      
+      <div class="date-filters">
+        <AppInput 
+          v-model="filters.startDate"
+          type="date"
+          data-testid="start-date-filter"
+        />
+        <AppInput 
+          v-model="filters.endDate"
+          type="date"
+          data-testid="end-date-filter"
+        />
+      </div>
+      
+      <AppButton @click="applyFilters" data-testid="apply-filters-button">
+        適用
+      </AppButton>
+      
+      <AppButton @click="resetFilters" data-testid="reset-filters-button">
+        リセット
       </AppButton>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">日付(From)</label>
-          <input
-            type="date"
-            v-model="filters.dateFrom"
-            @change="handleFilterChange('dateFrom', filters.dateFrom)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-date-from"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">日付(To)</label>
-          <input
-            type="date"
-            v-model="filters.dateTo"
-            @change="handleFilterChange('dateTo', filters.dateTo)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-date-to"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">勘定科目</label>
-          <select
-            v-model="filters.category"
-            @change="handleFilterChange('category', filters.category)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-category"
-          >
-            <option value="">すべて</option>
-            <option value="消耗品費">消耗品費</option>
-            <option value="旅費交通費">旅費交通費</option>
-            <option value="新聞図書費">新聞図書費</option>
-            <option value="通信費">通信費</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">タグ</label>
-          <input
-            type="text"
-            v-model="filters.tag"
-            @input="handleFilterChange('tag', filters.tag)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            placeholder="タグを入力"
-            data-testid="receipt-list-filter-tag"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">ステータス</label>
-          <select
-            v-model="filters.status"
-            @change="handleFilterChange('status', filters.status)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-status"
-          >
-            <option value="">すべて</option>
-            <option value="承認済み">承認済み</option>
-            <option value="未承認">未承認</option>
-            <option value="却下">却下</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="flex justify-end">
-        <AppButton variant="secondary" size="sm" @click="resetFilters" data-testid="receipt-list-reset-filters">
-          フィルターをリセット
-        </AppButton>
-      </div>
+    <!-- ローディング表示 -->
+    <AppLoading v-if="loading" data-testid="receipt-list-loading" />
+
+    <!-- エラーメッセージ -->
+    <div v-if="error" class="error-message" data-testid="receipt-list-error">
+      {{ error }}
     </div>
 
-    <!-- Receipt Table -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <AppLoading v-if="loading" :overlay="true" message="レシート一覧を読み込み中..." />
+    <!-- レシート一覧 -->
+    <AppTable 
+      :headers="tableHeaders"
+      :items="receipts"
+      :loading="loading"
+      @row-click="handleRowClick"
+      data-testid="receipt-list-table"
+    >
+      <template #cell-date="{ item }">
+        {{ formatDate(item.date) }}
+      </template>
       
-      <div v-if="error" class="text-red-500 mb-4">
-        {{ error }}
-      </div>
+      <template #cell-amount="{ item }">
+        {{ formatCurrency(item.amount) }}
+      </template>
+      
+      <template #cell-category="{ item }">
+        {{ item.category }}
+      </template>
+      
+      <template #cell-tags="{ item }">
+        <span 
+          v-for="tag in item.tags" 
+          :key="tag"
+          class="tag-badge"
+          data-testid="receipt-tag-badge"
+        >
+          {{ tag }}
+        </span>
+      </template>
+      
+      <template #cell-status="{ item }">
+        <AppBadge 
+          :status="item.status" 
+          :text="getStatusText(item.status)"
+        />
+      </template>
+    </AppTable>
 
-      <AppTable
-        v-if="!loading && !error"
-        :columns="tableColumns"
-        :rows="tableRows"
-        row-key="id"
-        :sort-by="sort.by"
-        :sort-order="sort.order"
-        @sort="handleSort"
-        @row-click="handleRowClick"
-        data-testid="receipt-list-table"
-      />
-
-      <!-- Pagination -->
-      <div v-if="!loading && !error && pagination.total > 0" class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-          {{ (pagination.page - 1) * pagination.pageSize + 1 }} - 
-          {{ Math.min(pagination.page * pagination.pageSize, pagination.total) }} / {{ pagination.total }}
-        </div>
-        <div class="flex gap-2">
-          <AppButton
-            variant="secondary"
-            size="sm"
-            :disabled="pagination.page <= 1"
-            @click="handlePageChange(pagination.page - 1)"
-            data-testid="receipt-list-prev-page"
-          >
-            前へ
-          </AppButton>
-          <AppButton
-            variant="secondary"
-            size="sm"
-            :disabled="pagination.page * pagination.pageSize >= pagination.total"
-            @click="handlePageChange(pagination.page + 1)"
-            data-testid="receipt-list-next-page"
-          >
-            次へ
-          </AppButton>
-        </div>
-      </div>
+    <!-- ページネーション -->
+    <div class="pagination" data-testid="receipt-list-pagination">
+      <AppButton 
+        @click="prevPage" 
+        :disabled="currentPage <= 1"
+        data-testid="prev-page-button"
+      >
+        前へ
+      </AppButton>
+      
+      <span>{{ currentPage }} / {{ totalPages }}</span>
+      
+      <AppButton 
+        @click="nextPage" 
+        :disabled="currentPage >= totalPages"
+        data-testid="next-page-button"
+      >
+        次へ
+      </AppButton>
     </div>
 
-    <!-- Detail Modal -->
-    <AppModal
-      v-model="showDetailModal"
-      title="レシート詳細"
-      size="lg"
-      @close="showDetailModal = false"
+    <!-- 詳細モーダル -->
+    <AppModal 
+      v-if="selectedReceipt"
+      :is-open="!!selectedReceipt"
+      @close="closeDetailModal"
       data-testid="receipt-detail-modal"
     >
-      <ReceiptDetailView 
-        :receipt-id="selectedReceipt?.id" 
-        v-if="showDetailModal && selectedReceipt"
-      />
+      <template #header>
+        <h2>レシート詳細</h2>
+      </template>
+      
+      <template #body>
+        <ReceiptDetailView 
+          :receipt="selectedReceipt" 
+          @close="closeDetailModal"
+        />
+      </template>
     </AppModal>
   </div>
 </template>
 
+<script setup lang="ts">
+import { ref, onMounted, watch } from 'vue';
+import { formatDate, formatCurrency } from '@/utils/currency';
+import { getReceipts } from '@/api/receipts';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
+import AppTable from '@/components/ui/AppTable.vue';
+import AppLoading from '@/components/ui/AppLoading.vue';
+import AppBadge from '@/components/ui/AppBadge.vue';
+import AppModal from '@/components/ui/AppModal.vue';
+import ReceiptDetailView from '@/components/ReceiptDetailView.vue';
+
+// フィルター条件
+const filters = ref({
+  searchTerm: '',
+  category: '',
+  tag: '',
+  startDate: '',
+  endDate: ''
+});
+
+// レシート一覧
+const receipts = ref<any[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+const currentPage = ref(1);
+const totalPages = ref(1);
+
+// 選択されたレシート（詳細表示用）
+const selectedReceipt = ref<any>(null);
+
+// テーブルヘッダー
+const tableHeaders = [
+  { key: 'date', label: '日付', sortable: true },
+  { key: 'amount', label: '金額', sortable: true },
+  { key: 'category', label: '勘定科目', sortable: true },
+  { key: 'tags', label: 'タグ' },
+  { key: 'status', label: 'ステータス' }
+];
+
+// レシート一覧取得
+const fetchReceipts = async (page: number = 1) => {
+  loading.value = true;
+  error.value = null;
+  
+  try {
+    const response = await getReceipts({
+      page,
+      limit: 20,
+      ...filters.value
+    });
+    
+    receipts.value = response.items;
+    currentPage.value = response.page;
+    totalPages.value = response.total_pages;
+  } catch (err) {
+    error.value = 'レシート一覧の取得に失敗しました';
+    console.error('レシート一覧取得エラー:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// フィルター適用
+const applyFilters = () => {
+  fetchReceipts(1); // 最初のページから再取得
+};
+
+// フィルターリセット
+const resetFilters = () => {
+  filters.value = {
+    searchTerm: '',
+    category: '',
+    tag: '',
+    startDate: '',
+    endDate: ''
+  };
+  fetchReceipts(1);
+};
+
+// 前のページ
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    fetchReceipts(currentPage.value - 1);
+  }
+};
+
+// 次のページ
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    fetchReceipts(currentPage.value + 1);
+  }
+};
+
+// 行クリック時の処理（詳細モーダル表示）
+const handleRowClick = (receipt: any) => {
+  selectedReceipt.value = receipt;
+};
+
+// 詳細モーダルを閉じる
+const closeDetailModal = () => {
+  selectedReceipt.value = null;
+};
+
+// ステータスのテキスト取得
+const getStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    pending: '承認待ち',
+    approved: '承認済み',
+    rejected: '却下済み'
+  };
+  
+  return statusMap[status] || status;
+};
+
+// 初期データ取得
+onMounted(() => {
+  fetchReceipts();
+});
+
+// ページ変更時の処理
+watch(currentPage, (newPage) => {
+  if (newPage !== currentPage.value) {
+    fetchReceipts(newPage);
+  }
+});
+</script>
+
 <style scoped>
-/* Additional styles for receipt list view */
+.receipt-list-view {
+  padding: 20px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.date-filters {
+  display: flex;
+  gap: 10px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.tag-badge {
+  background-color: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+
+.error-message {
+  color: #f44336;
+  padding: 10px;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
 </style>
