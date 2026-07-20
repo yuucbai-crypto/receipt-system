@@ -1,0 +1,3020 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "receipt-system",
+    "description": "AI駆動型確定申告用レシート管理システム - Backend API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/duplicate-check/check": {
+      "post": {
+        "tags": [
+          "Duplicate Check"
+        ],
+        "summary": "重複チェック実行",
+        "description": "2つのレシート間で重複チェックを実行し、総合スコアを計算します。",
+        "operationId": "check_duplicate_api_v1_duplicate_check_check_post",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateCheckResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/duplicate-check/find": {
+      "post": {
+        "tags": [
+          "Duplicate Check"
+        ],
+        "summary": "重複候補検索",
+        "description": "指定されたレシートの重複候補を検索します。",
+        "operationId": "find_duplicates_api_v1_duplicate_check_find_post",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindDuplicatesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindDuplicatesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/duplicate-check/{duplicate_check_id}": {
+      "get": {
+        "tags": [
+          "Duplicate Check"
+        ],
+        "summary": "重複チェック結果取得",
+        "description": "重複チェック結果の詳細を取得します。",
+        "operationId": "get_duplicate_check_api_v1_duplicate_check__duplicate_check_id__get",
+        "parameters": [
+          {
+            "name": "duplicate_check_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Duplicate Check Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateCheckListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/duplicate-check/{duplicate_check_id}/review": {
+      "post": {
+        "tags": [
+          "Duplicate Check"
+        ],
+        "summary": "重複チェック結果レビュー",
+        "description": "ユーザーによる重複判定結果を記録します。",
+        "operationId": "review_duplicate_check_api_v1_duplicate_check__duplicate_check_id__review_post",
+        "parameters": [
+          {
+            "name": "duplicate_check_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Duplicate Check Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateCheckReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicateCheckReviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/duplicate-check/receipt/{receipt_id}/checks": {
+      "get": {
+        "tags": [
+          "Duplicate Check"
+        ],
+        "summary": "レシートの重複チェック履歴取得",
+        "description": "指定されたレシートに関連する重複チェック履歴を取得します。",
+        "operationId": "get_receipt_duplicate_checks_api_v1_duplicate_check_receipt__receipt_id__checks_get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DuplicateCheckListResponse"
+                  },
+                  "title": "Response Get Receipt Duplicate Checks Api V1 Duplicate Check Receipt  Receipt Id  Checks Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipt-approval/approve": {
+      "post": {
+        "tags": [
+          "Receipt Approval"
+        ],
+        "summary": "レシート承認",
+        "description": "レシートを承認し、ファイルを承認済みフォルダへ仕分けします。",
+        "operationId": "approve_receipt_api_v1_receipt_approval_approve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptApprovalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptApprovalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipt-approval/reject": {
+      "post": {
+        "tags": [
+          "Receipt Approval"
+        ],
+        "summary": "レシート却下",
+        "description": "レシートを却下し、却下理由を保存します。",
+        "operationId": "reject_receipt_api_v1_receipt_approval_reject_post",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptRejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptApprovalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipt-approval/rejection-reasons/{receipt_id}": {
+      "get": {
+        "tags": [
+          "Receipt Approval"
+        ],
+        "summary": "却下理由取得",
+        "description": "指定されたレシートの却下理由を取得します。",
+        "operationId": "get_rejection_reason_api_v1_receipt_approval_rejection_reasons__receipt_id__get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectionReasonResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipt-approval/rejection-reasons": {
+      "get": {
+        "tags": [
+          "Receipt Approval"
+        ],
+        "summary": "却下理由一覧取得",
+        "description": "却下理由の一覧を取得します（フィルタ・ページング対応）。",
+        "operationId": "list_rejection_reasons_api_v1_receipt_approval_rejection_reasons_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "reason_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Reason Code"
+            }
+          },
+          {
+            "name": "is_for_ai_training",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is For Ai Training"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RejectionReasonListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/file-management/sort-approved": {
+      "post": {
+        "tags": [
+          "File Management"
+        ],
+        "summary": "承認済みレシートのファイル仕分け実行",
+        "description": "承認済みレシートのファイルをリネームし、勘定科目・年月フォルダに仕分けします。",
+        "operationId": "sort_approved_receipt_api_v1_file_management_sort_approved_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileSortRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileSortResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/file-management/list-approved": {
+      "post": {
+        "tags": [
+          "File Management"
+        ],
+        "summary": "承認済みファイル一覧取得",
+        "description": "承認済みフォルダ内のファイル一覧を取得します（カテゴリ・年月でフィルタ可）。",
+        "operationId": "list_approved_files_api_v1_file_management_list_approved_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovedFileListRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovedFileListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/file-management/approved-path/{receipt_id}": {
+      "get": {
+        "tags": [
+          "File Management"
+        ],
+        "summary": "承認済みファイルの期待パス取得",
+        "description": "承認済みレシートの期待されるファイルパスを取得します（ファイル存在確認用）。",
+        "operationId": "get_approved_file_path_api_v1_file_management_approved_path__receipt_id__get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileSortResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipts": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "summary": "レシート一覧取得",
+        "description": "レシートの一覧を取得します（フィルタ・ページング対応）。",
+        "operationId": "list_receipts_api_v1_receipts_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipts/{receipt_id}": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "summary": "レシート詳細取得",
+        "description": "指定されたレシートの詳細情報を取得します。",
+        "operationId": "get_receipt_api_v1_receipts__receipt_id__get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipts/{receipt_id}/image": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "summary": "レシート画像取得",
+        "description": "指定されたレシートの画像URLを取得します。",
+        "operationId": "get_receipt_image_api_v1_receipts__receipt_id__image_get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptImageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "レシート全文検索",
+        "description": "承認済みレシートを全文検索します（店舗名・OCRテキスト・AIコメント・タグ・カテゴリ対象）。",
+        "operationId": "search_receipts_api_v1_search__post",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/stats": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "検索インデックス統計取得",
+        "description": "検索インデックスの統計情報を取得します。",
+        "operationId": "get_search_index_stats_api_v1_search_stats_get",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchIndexStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/rebuild": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "検索インデックス再構築",
+        "description": "全レシートから検索インデックスを再構築します。",
+        "operationId": "rebuild_search_index_api_v1_search_rebuild_post",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebuildIndexRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebuildIndexResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/index/{receipt_id}": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "単一レシートのインデックス更新",
+        "description": "指定されたレシートの検索インデックスを更新/登録します。",
+        "operationId": "index_single_receipt_api_v1_search_index__receipt_id__post",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebuildIndexResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "単一レシートのインデックス削除",
+        "description": "指定されたレシートを検索インデックスから削除します。",
+        "operationId": "remove_from_search_index_api_v1_search_index__receipt_id__delete",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RebuildIndexResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "ヘルスチェック",
+        "description": "Health check endpoint.\n\nReturns:\n    JSONResponse: Health status with version and timestamp",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "tags": [
+          "Root"
+        ],
+        "summary": "ルートエンドポイント",
+        "description": "Root endpoint - minimal response.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApprovedFileInfo": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "filepath": {
+            "type": "string",
+            "title": "Filepath"
+          },
+          "category_folder": {
+            "type": "string",
+            "title": "Category Folder"
+          },
+          "year_month_folder": {
+            "type": "string",
+            "title": "Year Month Folder"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          },
+          "modified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Modified At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "filepath",
+          "category_folder",
+          "year_month_folder",
+          "file_size",
+          "modified_at"
+        ],
+        "title": "ApprovedFileInfo",
+        "description": "Approved file information."
+      },
+      "ApprovedFileListRequest": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Filter by category folder"
+          },
+          "year_month": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Month",
+            "description": "Filter by year-month (YYYY-MM)"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "Page number",
+            "default": 1
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "Page size",
+            "default": 20
+          }
+        },
+        "type": "object",
+        "title": "ApprovedFileListRequest",
+        "description": "Request to list approved files."
+      },
+      "ApprovedFileListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApprovedFileInfo"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "total_pages"
+        ],
+        "title": "ApprovedFileListResponse",
+        "description": "Response for approved file list."
+      },
+      "DuplicateCheckListResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "source_receipt_id": {
+            "type": "integer",
+            "title": "Source Receipt Id"
+          },
+          "target_receipt_id": {
+            "type": "integer",
+            "title": "Target Receipt Id"
+          },
+          "composite_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composite Score"
+          },
+          "duplicate_threshold": {
+            "type": "number",
+            "title": "Duplicate Threshold"
+          },
+          "is_duplicate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Duplicate"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "user_confirmed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Confirmed"
+          },
+          "user_reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Reviewed At"
+          },
+          "user_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Note"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_receipt_id",
+          "target_receipt_id",
+          "composite_score",
+          "duplicate_threshold",
+          "is_duplicate",
+          "status",
+          "user_confirmed",
+          "user_reviewed_at",
+          "user_note",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DuplicateCheckListResponse",
+        "description": "Response for listing duplicate check records."
+      },
+      "DuplicateCheckRequest": {
+        "properties": {
+          "source_receipt_id": {
+            "type": "integer",
+            "title": "Source Receipt Id",
+            "description": "New receipt ID to check"
+          },
+          "target_receipt_id": {
+            "type": "integer",
+            "title": "Target Receipt Id",
+            "description": "Existing receipt ID to compare against"
+          },
+          "save_result": {
+            "type": "boolean",
+            "title": "Save Result",
+            "description": "Whether to save result to database",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_receipt_id",
+          "target_receipt_id"
+        ],
+        "title": "DuplicateCheckRequest",
+        "description": "Request to check duplicate between two receipts."
+      },
+      "DuplicateCheckResponse": {
+        "properties": {
+          "is_duplicate": {
+            "type": "boolean",
+            "title": "Is Duplicate",
+            "description": "Whether duplicate was detected"
+          },
+          "composite_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Composite Score",
+            "description": "Composite similarity score"
+          },
+          "score_components": {
+            "$ref": "#/components/schemas/DuplicateScoreComponentsSchema",
+            "description": "Individual score components"
+          },
+          "duplicate_check_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Check Id",
+            "description": "ID of saved DuplicateCheck record"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Error message if check failed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_duplicate",
+          "composite_score",
+          "score_components"
+        ],
+        "title": "DuplicateCheckResponse",
+        "description": "Response for duplicate check operation."
+      },
+      "DuplicateCheckReviewRequest": {
+        "properties": {
+          "user_confirmed": {
+            "type": "boolean",
+            "title": "User Confirmed",
+            "description": "True if user confirms duplicate, False if not duplicate"
+          },
+          "user_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Note",
+            "description": "Optional user note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_confirmed"
+        ],
+        "title": "DuplicateCheckReviewRequest",
+        "description": "Request to review a duplicate check result."
+      },
+      "DuplicateCheckReviewResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "duplicate_check_id": {
+            "type": "integer",
+            "title": "Duplicate Check Id"
+          },
+          "user_confirmed": {
+            "type": "boolean",
+            "title": "User Confirmed"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "duplicate_check_id",
+          "user_confirmed",
+          "message"
+        ],
+        "title": "DuplicateCheckReviewResponse",
+        "description": "Response for duplicate check review."
+      },
+      "DuplicateScoreComponentsSchema": {
+        "properties": {
+          "store_name_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Name Score"
+          },
+          "amount_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Score"
+          },
+          "date_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Score"
+          },
+          "metadata_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Score"
+          },
+          "image_hash_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Hash Score"
+          },
+          "ocr_similarity_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Similarity Score"
+          },
+          "composite_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Composite Score"
+          },
+          "has_sufficient_data": {
+            "type": "boolean",
+            "title": "Has Sufficient Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "composite_score",
+          "has_sufficient_data"
+        ],
+        "title": "DuplicateScoreComponentsSchema",
+        "description": "Individual score components for duplicate detection."
+      },
+      "FileSortRequest": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id",
+            "description": "Approved receipt ID"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path",
+            "description": "Optional source path override"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id"
+        ],
+        "title": "FileSortRequest",
+        "description": "Request to sort an approved receipt file."
+      },
+      "FileSortResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id"
+          },
+          "source_path": {
+            "type": "string",
+            "title": "Source Path"
+          },
+          "destination_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Path"
+          },
+          "new_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Filename"
+          },
+          "category_folder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Folder"
+          },
+          "year_month_folder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Month Folder"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "receipt_id",
+          "source_path"
+        ],
+        "title": "FileSortResponse",
+        "description": "Response for file sorting operation."
+      },
+      "FindDuplicatesRequest": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id",
+            "description": "Receipt ID to check for duplicates"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "description": "Maximum number of results",
+            "default": 10
+          },
+          "min_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Score",
+            "description": "Minimum composite score",
+            "default": 0.5
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id"
+        ],
+        "title": "FindDuplicatesRequest",
+        "description": "Request to find potential duplicates for a receipt."
+      },
+      "FindDuplicatesResponse": {
+        "properties": {
+          "source_receipt_id": {
+            "type": "integer",
+            "title": "Source Receipt Id"
+          },
+          "potential_duplicates": {
+            "items": {
+              "$ref": "#/components/schemas/DuplicateCheckResponse"
+            },
+            "type": "array",
+            "title": "Potential Duplicates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_receipt_id",
+          "potential_duplicates"
+        ],
+        "title": "FindDuplicatesResponse",
+        "description": "Response for find duplicates operation."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "RebuildIndexRequest": {
+        "properties": {
+          "receipt_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Ids",
+            "description": "Specific receipt IDs to reindex (None = all)"
+          },
+          "batch_size": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Batch Size",
+            "description": "Batch size for reindexing",
+            "default": 100
+          },
+          "confirm": {
+            "type": "boolean",
+            "title": "Confirm",
+            "description": "Confirm rebuild operation",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "RebuildIndexRequest",
+        "description": "Alias for ReindexRequest for API compatibility."
+      },
+      "RebuildIndexResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success"
+          },
+          "indexed_count": {
+            "type": "integer",
+            "title": "Indexed Count"
+          },
+          "failed_count": {
+            "type": "integer",
+            "title": "Failed Count"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "indexed_count",
+          "failed_count",
+          "message"
+        ],
+        "title": "RebuildIndexResponse",
+        "description": "Alias for ReindexResponse for API compatibility."
+      },
+      "ReceiptApprovalRequest": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id",
+            "description": "Receipt ID to approve/reject"
+          },
+          "approve": {
+            "type": "boolean",
+            "title": "Approve",
+            "description": "True to approve, False to reject"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RejectionReasonCreate"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required if approve=False"
+          },
+          "user_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Note",
+            "description": "Optional user note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "approve"
+        ],
+        "title": "ReceiptApprovalRequest",
+        "description": "Request to approve a receipt."
+      },
+      "ReceiptApprovalResponse": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "status_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Message"
+          },
+          "rejection_reason_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason Id"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "status",
+          "status_message",
+          "updated_at"
+        ],
+        "title": "ReceiptApprovalResponse",
+        "description": "Response for receipt approval/rejection."
+      },
+      "ReceiptDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "stored_filename": {
+            "type": "string",
+            "title": "Stored Filename"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "image_hash": {
+            "type": "string",
+            "title": "Image Hash"
+          },
+          "ocr_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text"
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence"
+          },
+          "ocr_language": {
+            "type": "string",
+            "title": "Ocr Language"
+          },
+          "receipt_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Date"
+          },
+          "store_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Name"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "category_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Confidence"
+          },
+          "ai_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Comment"
+          },
+          "ai_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Model"
+          },
+          "ai_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Confidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "status_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Message"
+          },
+          "processing_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Started At"
+          },
+          "processing_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Completed At"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "original_filename",
+          "stored_filename",
+          "file_path",
+          "file_size",
+          "mime_type",
+          "image_hash",
+          "ocr_language",
+          "currency",
+          "status",
+          "retry_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReceiptDetailResponse",
+        "description": "Detailed receipt response (extends list response with more details)."
+      },
+      "ReceiptImageResponse": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id"
+          },
+          "image_url": {
+            "type": "string",
+            "title": "Image Url"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "image_url",
+          "mime_type",
+          "file_size"
+        ],
+        "title": "ReceiptImageResponse",
+        "description": "Receipt image response."
+      },
+      "ReceiptListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReceiptResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "total_pages"
+        ],
+        "title": "ReceiptListResponse",
+        "description": "Paginated receipt list response."
+      },
+      "ReceiptRejectRequest": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id",
+            "description": "レシートID"
+          },
+          "reason_code": {
+            "type": "string",
+            "maxLength": 50,
+            "title": "Reason Code",
+            "description": "却下理由コード"
+          },
+          "reason_text": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Reason Text",
+            "description": "却下理由テキスト"
+          },
+          "user_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Note",
+            "description": "ユーザーメモ"
+          },
+          "is_for_ai_training": {
+            "type": "boolean",
+            "title": "Is For Ai Training",
+            "description": "AI学習用データとして使用",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "reason_code",
+          "reason_text"
+        ],
+        "title": "ReceiptRejectRequest",
+        "description": "Request to reject a receipt with reason."
+      },
+      "ReceiptResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "stored_filename": {
+            "type": "string",
+            "title": "Stored Filename"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "image_hash": {
+            "type": "string",
+            "title": "Image Hash"
+          },
+          "ocr_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text"
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence"
+          },
+          "ocr_language": {
+            "type": "string",
+            "title": "Ocr Language"
+          },
+          "receipt_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Date"
+          },
+          "store_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Name"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "category_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Confidence"
+          },
+          "ai_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Comment"
+          },
+          "ai_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Model"
+          },
+          "ai_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Confidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "status_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Message"
+          },
+          "processing_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Started At"
+          },
+          "processing_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Completed At"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "original_filename",
+          "stored_filename",
+          "file_path",
+          "file_size",
+          "mime_type",
+          "image_hash",
+          "ocr_language",
+          "currency",
+          "status",
+          "retry_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReceiptResponse",
+        "description": "Receipt response item."
+      },
+      "RejectionReasonCreate": {
+        "properties": {
+          "reason_code": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Reason Code",
+            "description": "Reason code (e.g., 'DUPLICATE', 'INVALID_AMOUNT')"
+          },
+          "reason_category": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Reason Category",
+            "description": "Reason category (e.g., 'DUPLICATE', 'DATA_QUALITY', 'NOT_BUSINESS')"
+          },
+          "reason_text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason Text",
+            "description": "Detailed reason text"
+          },
+          "user_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Note",
+            "description": "Optional user note"
+          },
+          "is_for_ai_training": {
+            "type": "boolean",
+            "title": "Is For Ai Training",
+            "description": "Whether this can be used for AI training",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason_code",
+          "reason_category",
+          "reason_text"
+        ],
+        "title": "RejectionReasonCreate",
+        "description": "Request to create a rejection reason."
+      },
+      "RejectionReasonListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RejectionReasonResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "total_pages"
+        ],
+        "title": "RejectionReasonListResponse",
+        "description": "Paginated list of rejection reasons."
+      },
+      "RejectionReasonResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id"
+          },
+          "reason_code": {
+            "type": "string",
+            "title": "Reason Code"
+          },
+          "reason_category": {
+            "type": "string",
+            "title": "Reason Category"
+          },
+          "reason_text": {
+            "type": "string",
+            "title": "Reason Text"
+          },
+          "user_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Note"
+          },
+          "ai_feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Feedback"
+          },
+          "is_for_ai_training": {
+            "type": "boolean",
+            "title": "Is For Ai Training"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "receipt_id",
+          "reason_code",
+          "reason_category",
+          "reason_text",
+          "user_note",
+          "ai_feedback",
+          "is_for_ai_training",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RejectionReasonResponse",
+        "description": "Response for rejection reason."
+      },
+      "SearchIndexStatsResponse": {
+        "properties": {
+          "total_documents": {
+            "type": "integer",
+            "title": "Total Documents"
+          },
+          "last_updated": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Updated"
+          },
+          "index_size_bytes": {
+            "type": "integer",
+            "title": "Index Size Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_documents",
+          "last_updated",
+          "index_size_bytes"
+        ],
+        "title": "SearchIndexStatsResponse",
+        "description": "Search index statistics."
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "description": "Search query (supports FTS5 syntax)"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "description": "Maximum results",
+            "default": 20
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset",
+            "description": "Pagination offset",
+            "default": 0
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Filter by category"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Filter by date from"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "Filter by date to"
+          },
+          "amount_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Min",
+            "description": "Minimum amount"
+          },
+          "amount_max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Max",
+            "description": "Maximum amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "description": "Search request parameters."
+      },
+      "SearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchResultItem"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "results",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "SearchResponse",
+        "description": "Search response."
+      },
+      "SearchResultItem": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "description": "Relevance score"
+          },
+          "store_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Name"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "receipt_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Date"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "score",
+          "store_name",
+          "total_amount",
+          "receipt_date",
+          "category",
+          "tags",
+          "snippet"
+        ],
+        "title": "SearchResultItem",
+        "description": "Individual search result."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

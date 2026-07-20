@@ -1,0 +1,24 @@
+{
+  "name": "receipt-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuucbai-crypto/receipt-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yuucbai-crypto/receipt-system/issues"
+  },
+  "homepage": "https://github.com/yuucbai-crypto/receipt-system#readme"
+}
