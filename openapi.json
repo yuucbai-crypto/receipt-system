@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "receipt-system",
-    "description": "AI\u99c6\u52d5\u578b\u78ba\u5b9a\u7533\u544a\u7528\u30ec\u30b7\u30fc\u30c8\u7ba1\u7406\u30b7\u30b9\u30c6\u30e0 - Backend API",
+    "description": "AI駆動型確定申告用レシート管理システム - Backend API",
     "version": "0.1.0"
   },
   "paths": {
@@ -11,8 +11,8 @@
         "tags": [
           "Duplicate Check"
         ],
-        "summary": "\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u5b9f\u884c",
-        "description": "2\u3064\u306e\u30ec\u30b7\u30fc\u30c8\u9593\u3067\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u3092\u5b9f\u884c\u3057\u3001\u7dcf\u5408\u30b9\u30b3\u30a2\u3092\u8a08\u7b97\u3057\u307e\u3059\u3002",
+        "summary": "重複チェック実行",
+        "description": "2つのレシート間で重複チェックを実行し、総合スコアを計算します。",
         "operationId": "check_duplicate_api_v1_duplicate_check_check_post",
         "parameters": [
           {
@@ -63,8 +63,8 @@
         "tags": [
           "Duplicate Check"
         ],
-        "summary": "\u91cd\u8907\u5019\u88dc\u691c\u7d22",
-        "description": "\u6307\u5b9a\u3055\u308c\u305f\u30ec\u30b7\u30fc\u30c8\u306e\u91cd\u8907\u5019\u88dc\u3092\u691c\u7d22\u3057\u307e\u3059\u3002",
+        "summary": "重複候補検索",
+        "description": "指定されたレシートの重複候補を検索します。",
         "operationId": "find_duplicates_api_v1_duplicate_check_find_post",
         "parameters": [
           {
@@ -115,8 +115,8 @@
         "tags": [
           "Duplicate Check"
         ],
-        "summary": "\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u7d50\u679c\u53d6\u5f97",
-        "description": "\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u7d50\u679c\u306e\u8a73\u7d30\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002",
+        "summary": "重複チェック結果取得",
+        "description": "重複チェック結果の詳細を取得します。",
         "operationId": "get_duplicate_check_api_v1_duplicate_check__duplicate_check_id__get",
         "parameters": [
           {
@@ -158,8 +158,8 @@
         "tags": [
           "Duplicate Check"
         ],
-        "summary": "\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u7d50\u679c\u30ec\u30d3\u30e5\u30fc",
-        "description": "\u30e6\u30fc\u30b6\u30fc\u306b\u3088\u308b\u91cd\u8907\u5224\u5b9a\u7d50\u679c\u3092\u8a18\u9332\u3057\u307e\u3059\u3002",
+        "summary": "重複チェック結果レビュー",
+        "description": "ユーザーによる重複判定結果を記録します。",
         "operationId": "review_duplicate_check_api_v1_duplicate_check__duplicate_check_id__review_post",
         "parameters": [
           {
@@ -211,8 +211,8 @@
         "tags": [
           "Duplicate Check"
         ],
-        "summary": "\u30ec\u30b7\u30fc\u30c8\u306e\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u5c65\u6b74\u53d6\u5f97",
-        "description": "\u6307\u5b9a\u3055\u308c\u305f\u30ec\u30b7\u30fc\u30c8\u306b\u95a2\u9023\u3059\u308b\u91cd\u8907\u30c1\u30a7\u30c3\u30af\u5c65\u6b74\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002",
+        "summary": "レシートの重複チェック履歴取得",
+        "description": "指定されたレシートに関連する重複チェック履歴を取得します。",
         "operationId": "get_receipt_duplicate_checks_api_v1_duplicate_check_receipt__receipt_id__checks_get",
         "parameters": [
           {
@@ -258,8 +258,8 @@
         "tags": [
           "Receipt Approval"
         ],
-        "summary": "\u30ec\u30b7\u30fc\u30c8\u627f\u8a8d",
-        "description": "\u30ec\u30b7\u30fc\u30c8\u3092\u627f\u8a8d\u3057\u3001\u30d5\u30a1\u30a4\u30eb\u3092\u627f\u8a8d\u6e08\u307f\u30d5\u30a9\u30eb\u30c0\u3078\u4ed5\u5206\u3051\u3057\u307e\u3059\u3002",
+        "summary": "レシート承認",
+        "description": "レシートを承認し、ファイルを承認済みフォルダへ仕分けします。",
         "operationId": "approve_receipt_api_v1_receipt_approval_approve_post",
         "requestBody": {
           "content": {
@@ -300,8 +300,8 @@
         "tags": [
           "Receipt Approval"
         ],
-        "summary": "\u30ec\u30b7\u30fc\u30c8\u5374\u4e0b",
-        "description": "\u30ec\u30b7\u30fc\u30c8\u3092\u5374\u4e0b\u3057\u3001\u5374\u4e0b\u7406\u7531\u3092\u4fdd\u5b58\u3057\u307e\u3059\u3002",
+        "summary": "レシート却下",
+        "description": "レシートを却下し、却下理由を保存します。",
         "operationId": "reject_receipt_api_v1_receipt_approval_reject_post",
         "parameters": [
           {
@@ -352,8 +352,8 @@
         "tags": [
           "Receipt Approval"
         ],
-        "summary": "\u5374\u4e0b\u7406\u7531\u53d6\u5f97",
-        "description": "\u6307\u5b9a\u3055\u308c\u305f\u30ec\u30b7\u30fc\u30c8\u306e\u5374\u4e0b\u7406\u7531\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002",
+        "summary": "却下理由取得",
+        "description": "指定されたレシートの却下理由を取得します。",
         "operationId": "get_rejection_reason_api_v1_receipt_approval_rejection_reasons__receipt_id__get",
         "parameters": [
           {
@@ -403,8 +403,8 @@
         "tags": [
           "Receipt Approval"
         ],
-        "summary": "\u5374\u4e0b\u7406\u7531\u4e00\u89a7\u53d6\u5f97",
-        "description": "\u5374\u4e0b\u7406\u7531\u306e\u4e00\u89a7\u3092\u53d6\u5f97\u3057\u307e\u3059\uff08\u30d5\u30a3\u30eb\u30bf\u30fb\u30da\u30fc\u30b8\u30f3\u30b0\u5bfe\u5fdc\uff09\u3002",
+        "summary": "却下理由一覧取得",
+        "description": "却下理由の一覧を取得します（フィルタ・ページング対応）。",
         "operationId": "list_rejection_reasons_api_v1_receipt_approval_rejection_reasons_get",
         "parameters": [
           {
@@ -513,8 +513,8 @@
         "tags": [
           "File Management"
         ],
-        "summary": "\u627f\u8a8d\u6e08\u307f\u30ec\u30b7\u30fc\u30c8\u306e\u30d5\u30a1\u30a4\u30eb\u4ed5\u5206\u3051\u5b9f\u884c",
-        "description": "\u627f\u8a8d\u6e08\u307f\u30ec\u30b7\u30fc\u30c8\u306e\u30d5\u30a1\u30a4\u30eb\u3092\u30ea\u30cd\u30fc\u30e0\u3057\u3001\u52d8\u5b9a\u79d1\u76ee\u30fb\u5e74\u6708\u30d5\u30a9\u30eb\u30c0\u306b\u4ed5\u5206\u3051\u3057\u307e\u3059\u3002",
+        "summary": "承認済みレシートのファイル仕分け実行",
+        "description": "承認済みレシートのファイルをリネームし、勘定科目・年月フォルダに仕分けします。",
         "operationId": "sort_approved_receipt_api_v1_file_management_sort_approved_post",
         "requestBody": {
           "content": {
@@ -555,8 +555,8 @@
         "tags": [
           "File Management"
         ],
-        "summary": "\u627f\u8a8d\u6e08\u307f\u30d5\u30a1\u30a4\u30eb\u4e00\u89a7\u53d6\u5f97",
-        "description": "\u627f\u8a8d\u6e08\u307f\u30d5\u30a9\u30eb\u30c0\u5185\u306e\u30d5\u30a1\u30a4\u30eb\u4e00\u89a7\u3092\u53d6\u5f97\u3057\u307e\u3059\uff08\u30ab\u30c6\u30b4\u30ea\u30fb\u5e74\u6708\u3067\u30d5\u30a3\u30eb\u30bf\u53ef\uff09\u3002",
+        "summary": "承認済みファイル一覧取得",
+        "description": "承認済みフォルダ内のファイル一覧を取得します（カテゴリ・年月でフィルタ可）。",
         "operationId": "list_approved_files_api_v1_file_management_list_approved_post",
         "requestBody": {
           "content": {
@@ -597,8 +597,8 @@
         "tags": [
           "File Management"
         ],
-        "summary": "\u627f\u8a8d\u6e08\u307f\u30d5\u30a1\u30a4\u30eb\u306e\u671f\u5f85\u30d1\u30b9\u53d6\u5f97",
-        "description": "\u627f\u8a8d\u6e08\u307f\u30ec\u30b7\u30fc\u30c8\u306e\u671f\u5f85\u3055\u308c\u308b\u30d5\u30a1\u30a4\u30eb\u30d1\u30b9\u3092\u53d6\u5f97\u3057\u307e\u3059\uff08\u30d5\u30a1\u30a4\u30eb\u5b58\u5728\u78ba\u8a8d\u7528\uff09\u3002",
+        "summary": "承認済みファイルの期待パス取得",
+        "description": "承認済みレシートの期待されるファイルパスを取得します（ファイル存在確認用）。",
         "operationId": "get_approved_file_path_api_v1_file_management_approved_path__receipt_id__get",
         "parameters": [
           {
@@ -635,13 +635,222 @@
         }
       }
     },
+    "/api/v1/receipts": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "summary": "レシート一覧取得",
+        "description": "レシートの一覧を取得します（フィルタ・ページング対応）。",
+        "operationId": "list_receipts_api_v1_receipts_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipts/{receipt_id}": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "summary": "レシート詳細取得",
+        "description": "指定されたレシートの詳細情報を取得します。",
+        "operationId": "get_receipt_api_v1_receipts__receipt_id__get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/receipts/{receipt_id}/image": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "summary": "レシート画像取得",
+        "description": "指定されたレシートの画像URLを取得します。",
+        "operationId": "get_receipt_image_api_v1_receipts__receipt_id__image_get",
+        "parameters": [
+          {
+            "name": "receipt_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Receipt Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptImageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/search/": {
       "post": {
         "tags": [
           "Search"
         ],
-        "summary": "\u30ec\u30b7\u30fc\u30c8\u5168\u6587\u691c\u7d22",
-        "description": "\u627f\u8a8d\u6e08\u307f\u30ec\u30b7\u30fc\u30c8\u3092\u5168\u6587\u691c\u7d22\u3057\u307e\u3059\uff08\u5e97\u8217\u540d\u30fbOCR\u30c6\u30ad\u30b9\u30c8\u30fbAI\u30b3\u30e1\u30f3\u30c8\u30fb\u30bf\u30b0\u30fb\u30ab\u30c6\u30b4\u30ea\u5bfe\u8c61\uff09\u3002",
+        "summary": "レシート全文検索",
+        "description": "承認済みレシートを全文検索します（店舗名・OCRテキスト・AIコメント・タグ・カテゴリ対象）。",
         "operationId": "search_receipts_api_v1_search__post",
         "parameters": [
           {
@@ -692,8 +901,8 @@
         "tags": [
           "Search"
         ],
-        "summary": "\u691c\u7d22\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u7d71\u8a08\u53d6\u5f97",
-        "description": "\u691c\u7d22\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u306e\u7d71\u8a08\u60c5\u5831\u3092\u53d6\u5f97\u3057\u307e\u3059\u3002",
+        "summary": "検索インデックス統計取得",
+        "description": "検索インデックスの統計情報を取得します。",
         "operationId": "get_search_index_stats_api_v1_search_stats_get",
         "parameters": [
           {
@@ -734,8 +943,8 @@
         "tags": [
           "Search"
         ],
-        "summary": "\u691c\u7d22\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u518d\u69cb\u7bc9",
-        "description": "\u5168\u30ec\u30b7\u30fc\u30c8\u304b\u3089\u691c\u7d22\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u3092\u518d\u69cb\u7bc9\u3057\u307e\u3059\u3002",
+        "summary": "検索インデックス再構築",
+        "description": "全レシートから検索インデックスを再構築します。",
         "operationId": "rebuild_search_index_api_v1_search_rebuild_post",
         "parameters": [
           {
@@ -786,8 +995,8 @@
         "tags": [
           "Search"
         ],
-        "summary": "\u5358\u4e00\u30ec\u30b7\u30fc\u30c8\u306e\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u66f4\u65b0",
-        "description": "\u6307\u5b9a\u3055\u308c\u305f\u30ec\u30b7\u30fc\u30c8\u306e\u691c\u7d22\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u3092\u66f4\u65b0/\u767b\u9332\u3057\u307e\u3059\u3002",
+        "summary": "単一レシートのインデックス更新",
+        "description": "指定されたレシートの検索インデックスを更新/登録します。",
         "operationId": "index_single_receipt_api_v1_search_index__receipt_id__post",
         "parameters": [
           {
@@ -835,8 +1044,8 @@
         "tags": [
           "Search"
         ],
-        "summary": "\u5358\u4e00\u30ec\u30b7\u30fc\u30c8\u306e\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u524a\u9664",
-        "description": "\u6307\u5b9a\u3055\u308c\u305f\u30ec\u30b7\u30fc\u30c8\u3092\u691c\u7d22\u30a4\u30f3\u30c7\u30c3\u30af\u30b9\u304b\u3089\u524a\u9664\u3057\u307e\u3059\u3002",
+        "summary": "単一レシートのインデックス削除",
+        "description": "指定されたレシートを検索インデックスから削除します。",
         "operationId": "remove_from_search_index_api_v1_search_index__receipt_id__delete",
         "parameters": [
           {
@@ -886,7 +1095,7 @@
         "tags": [
           "Health"
         ],
-        "summary": "\u30d8\u30eb\u30b9\u30c1\u30a7\u30c3\u30af",
+        "summary": "ヘルスチェック",
         "description": "Health check endpoint.\n\nReturns:\n    JSONResponse: Health status with version and timestamp",
         "operationId": "health_check_health_get",
         "responses": {
@@ -906,7 +1115,7 @@
         "tags": [
           "Root"
         ],
-        "summary": "\u30eb\u30fc\u30c8\u30a8\u30f3\u30c9\u30dd\u30a4\u30f3\u30c8",
+        "summary": "ルートエンドポイント",
         "description": "Root endpoint - minimal response.",
         "operationId": "root__get",
         "responses": {
@@ -1740,24 +1949,341 @@
         "title": "ReceiptApprovalResponse",
         "description": "Response for receipt approval/rejection."
       },
+      "ReceiptDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "stored_filename": {
+            "type": "string",
+            "title": "Stored Filename"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "image_hash": {
+            "type": "string",
+            "title": "Image Hash"
+          },
+          "ocr_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text"
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence"
+          },
+          "ocr_language": {
+            "type": "string",
+            "title": "Ocr Language"
+          },
+          "receipt_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Date"
+          },
+          "store_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Name"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "category_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Confidence"
+          },
+          "ai_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Comment"
+          },
+          "ai_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Model"
+          },
+          "ai_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Confidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "status_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Message"
+          },
+          "processing_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Started At"
+          },
+          "processing_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Completed At"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "original_filename",
+          "stored_filename",
+          "file_path",
+          "file_size",
+          "mime_type",
+          "image_hash",
+          "ocr_language",
+          "currency",
+          "status",
+          "retry_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReceiptDetailResponse",
+        "description": "Detailed receipt response (extends list response with more details)."
+      },
+      "ReceiptImageResponse": {
+        "properties": {
+          "receipt_id": {
+            "type": "integer",
+            "title": "Receipt Id"
+          },
+          "image_url": {
+            "type": "string",
+            "title": "Image Url"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "receipt_id",
+          "image_url",
+          "mime_type",
+          "file_size"
+        ],
+        "title": "ReceiptImageResponse",
+        "description": "Receipt image response."
+      },
+      "ReceiptListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReceiptResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "total_pages"
+        ],
+        "title": "ReceiptListResponse",
+        "description": "Paginated receipt list response."
+      },
       "ReceiptRejectRequest": {
         "properties": {
           "receipt_id": {
             "type": "integer",
             "title": "Receipt Id",
-            "description": "\u30ec\u30b7\u30fc\u30c8ID"
+            "description": "レシートID"
           },
           "reason_code": {
             "type": "string",
             "maxLength": 50,
             "title": "Reason Code",
-            "description": "\u5374\u4e0b\u7406\u7531\u30b3\u30fc\u30c9"
+            "description": "却下理由コード"
           },
           "reason_text": {
             "type": "string",
             "maxLength": 500,
             "title": "Reason Text",
-            "description": "\u5374\u4e0b\u7406\u7531\u30c6\u30ad\u30b9\u30c8"
+            "description": "却下理由テキスト"
           },
           "user_note": {
             "anyOf": [
@@ -1770,12 +2296,12 @@
               }
             ],
             "title": "User Note",
-            "description": "\u30e6\u30fc\u30b6\u30fc\u30e1\u30e2"
+            "description": "ユーザーメモ"
           },
           "is_for_ai_training": {
             "type": "boolean",
             "title": "Is For Ai Training",
-            "description": "AI\u5b66\u7fd2\u7528\u30c7\u30fc\u30bf\u3068\u3057\u3066\u4f7f\u7528",
+            "description": "AI学習用データとして使用",
             "default": false
           }
         },
@@ -1787,6 +2313,257 @@
         ],
         "title": "ReceiptRejectRequest",
         "description": "Request to reject a receipt with reason."
+      },
+      "ReceiptResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "original_filename": {
+            "type": "string",
+            "title": "Original Filename"
+          },
+          "stored_filename": {
+            "type": "string",
+            "title": "Stored Filename"
+          },
+          "file_path": {
+            "type": "string",
+            "title": "File Path"
+          },
+          "file_size": {
+            "type": "integer",
+            "title": "File Size"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime Type"
+          },
+          "image_hash": {
+            "type": "string",
+            "title": "Image Hash"
+          },
+          "ocr_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text"
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence"
+          },
+          "ocr_language": {
+            "type": "string",
+            "title": "Ocr Language"
+          },
+          "receipt_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Date"
+          },
+          "store_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Store Name"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Amount"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "category_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Name"
+          },
+          "category_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Confidence"
+          },
+          "ai_comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Comment"
+          },
+          "ai_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Model"
+          },
+          "ai_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Confidence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "status_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status Message"
+          },
+          "processing_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Started At"
+          },
+          "processing_completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Completed At"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "original_filename",
+          "stored_filename",
+          "file_path",
+          "file_size",
+          "mime_type",
+          "image_hash",
+          "ocr_language",
+          "currency",
+          "status",
+          "retry_count",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReceiptResponse",
+        "description": "Receipt response item."
       },
       "RejectionReasonCreate": {
         "properties": {
