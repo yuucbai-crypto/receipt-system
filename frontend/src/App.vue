@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useUIStore } from './stores/ui'
-import { useReceiptsStore } from './stores/receipts'
 
 // Import components to ensure they're registered
 import AppButton from './components/ui/AppButton.vue'
@@ -13,12 +12,8 @@ import AppTable from './components/ui/AppTable.vue'
 import AppImagePreview from './components/ui/AppImagePreview.vue'
 import AppBadge from './components/ui/AppBadge.vue'
 import AppTabs from './components/ui/AppTabs.vue'
-import ReceiptListView from './components/ReceiptListView.vue'
-import ReceiptDetailView from './components/ReceiptDetailView.vue'
-import DuplicateCheckView from './components/DuplicateCheckView.vue'
 
 const uiStore = useUIStore()
-const receiptsStore = useReceiptsStore()
 
 const showModal = ref(false)
 const imagePreviewOpen = ref(false)
@@ -80,24 +75,6 @@ const handleTableRowClick = (row: Record<string, unknown>) => {
   console.log('Row clicked:', row)
   uiStore.showInfo(`${tableRow.store} を選択しました`)
 }
-
-// Tab navigation handling
-const currentView = computed(() => {
-  switch (activeTab.value) {
-    case 'dashboard':
-      return 'ダッシュボード'
-    case 'receipts':
-      return 'レシート一覧'
-    case 'search':
-      return '検索'
-    case 'settings':
-      return '設定'
-    case 'duplicate-check':
-      return '重複チェック'
-    default:
-      return 'ダッシュボード'
-  }
-})
 </script>
 
 <template>

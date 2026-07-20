@@ -25,12 +25,12 @@
       <div class="date-filters">
         <AppInput 
           v-model="filters.startDate"
-          type="date"
+          type="text"
           data-testid="start-date-filter"
         />
         <AppInput 
           v-model="filters.endDate"
-          type="date"
+          type="text"
           data-testid="end-date-filter"
         />
       </div>
@@ -54,8 +54,9 @@
 
     <!-- レシート一覧 -->
     <AppTable 
-      :headers="tableHeaders"
-      :items="receipts"
+      :columns="tableHeaders"
+      :rows="receipts"
+      :row-key="'id'"
       :loading="loading"
       @row-click="handleRowClick"
       data-testid="receipt-list-table"
@@ -115,7 +116,7 @@
     <!-- 詳細モーダル -->
     <AppModal 
       v-if="selectedReceipt"
-      :is-open="!!selectedReceipt"
+      :model-value="!!selectedReceipt"
       @close="closeDetailModal"
       data-testid="receipt-detail-modal"
     >
@@ -166,11 +167,11 @@ const selectedReceipt = ref<any>(null);
 
 // テーブルヘッダー
 const tableHeaders = [
-  { key: 'date', label: '日付', sortable: true },
-  { key: 'amount', label: '金額', sortable: true },
-  { key: 'category', label: '勘定科目', sortable: true },
-  { key: 'tags', label: 'タグ' },
-  { key: 'status', label: 'ステータス' }
+  { key: 'date', header: '日付', sortable: false },
+  { key: 'amount', header: '金額', sortable: true },
+  { key: 'category', header: '勘定科目', sortable: true },
+  { key: 'tags', header: 'タグ', sortable: false },
+  { key: 'status', header: 'ステータス', sortable: false }
 ];
 
 // レシート一覧取得

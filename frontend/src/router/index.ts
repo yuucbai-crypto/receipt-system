@@ -1,4 +1,3 @@
-import { createApp } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import DashboardView from '@/components/DashboardView.vue';
 import ReceiptListView from '@/components/ReceiptListView.vue';

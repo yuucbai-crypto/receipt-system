@@ -64,7 +64,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from 'vue'
 import AppModal from './ui/AppModal.vue'
 import AppButton from './ui/AppButton.vue'
 import AppLoading from './ui/AppLoading.vue'

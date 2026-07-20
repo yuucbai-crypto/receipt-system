@@ -9,7 +9,6 @@
           <label>日付</label>
           <p>{{ formatDate(receipt.date) }}</p>
         </div>
-        
         <div class="info-item">
           <label>金額</label>
           <p>{{ formatCurrency(receipt.amount) }}</p>
@@ -52,6 +51,8 @@
       <AppImagePreview 
         :src="receipt.image_url" 
         :alt="`レシート画像 - ${receipt.id}`"
+        :open="true"
+        @close="$emit('close')"
         data-testid="receipt-image"
       />
     </div>
@@ -108,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineEmits } from 'vue';
+
 import { formatDate, formatCurrency } from '@/utils/currency';
 import AppBadge from '@/components/ui/AppBadge.vue';
 import AppImagePreview from '@/components/ui/AppImagePreview.vue';
@@ -117,6 +118,8 @@ import AppButton from '@/components/ui/AppButton.vue';
 // プロパティ
 const props = defineProps<{
   receipt: any;
+  open?: boolean;
+  onClose?: () => void;
 }>();
 
 // イベント
