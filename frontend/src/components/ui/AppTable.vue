@@ -119,7 +119,7 @@ const sortIcon = (column: Column<Record<string, unknown>>) => {
             { 'hover:bg-gray-50': hoverable },
             { 'cursor-pointer': true },
           ]"
-          data-testid="table-row"
+          :data-testid="`row-${index}`"
           :data-test-row-key="getRowKey(row)"
           @click="$emit('rowClick', row)"
         >

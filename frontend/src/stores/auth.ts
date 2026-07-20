@@ -94,7 +94,7 @@ export const useAuthStore = defineStore('auth', () => {
     return result!
   }
 
-  const logout = (_payload?: unknown): void => {
+  const logout = (): void => {
     setToken({ token: null })
     setUser({ user: null })
   }

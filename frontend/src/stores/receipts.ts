@@ -1,5 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import type { SearchResultItem } from '@/api/models/SearchResultItem'
+import type { ApprovedFileListResponse } from '@/api/models/ApprovedFileListResponse'
+import {
+  getReceipts as apiGetReceipts,
+  getReceipt as apiGetReceipt,
+  approveReceipt as apiApproveReceipt,
+  rejectReceipt as apiRejectReceipt,
+  getDuplicateChecks as apiGetDuplicateChecks,
+  approveDuplicateCheck as apiApproveDuplicateCheck,
+  rejectDuplicateCheck as apiRejectDuplicateCheck,
+  getApprovedFiles as apiGetApprovedFiles,
+} from '@/api/services/receipts'
 
 export interface Receipt {
   id: string
@@ -50,6 +62,7 @@ export interface SetReceiptsPayload {
 
 export interface ApproveReceiptPayload {
   receiptId: string
+  comment?: string
 }
 
 export interface RejectReceiptPayload {
@@ -58,7 +71,9 @@ export interface RejectReceiptPayload {
   reasonDetail?: string
 }
 
-export type CheckDuplicatesPayload = Record<string, unknown>
+export interface CheckDuplicatesPayload {
+  receiptId: string
+}
 
 export const useReceiptsStore = defineStore('receipts', () => {
   const receipts = ref<Receipt[]>([])
@@ -112,78 +127,167 @@ export const useReceiptsStore = defineStore('receipts', () => {
     error.value = null
   }
 
-  // API actions - will be implemented with actual API calls
-  const approveReceipt = async (_payload: ApproveReceiptPayload): Promise<{ success: boolean; error?: string }> => {
+  // API actions
+  const fetchReceipts = async (): Promise<void> => {
     setLoading(true)
     setError(null)
-    let result: { success: boolean; error?: string }
     try {
-      // const response = await api.receiptApproval.approve(payload)
-      // return response
-      result = { success: true }
+      const response = await apiGetReceipts()
+      // Transform SearchResultItem[] to Receipt[]
+      const transformedReceipts: Receipt[] = response.data.map((item: SearchResultItem) => ({
+        id: String(item.receipt_id),
+        date: item.receipt_date || '',
+        store: item.store_name || '',
+        amount: item.total_amount || 0,
+        category: item.category || '',
+        status: 'pending' as const, // Search result doesn't have status
+        tags: item.tags || [],
+        imageUrl: undefined,
+      }))
+      setReceipts({ receipts: transformedReceipts, total: transformedReceipts.length })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'レシート一覧の取得に失敗しました'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchReceipt = async (id: string): Promise<Receipt | null> => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await apiGetReceipt(parseInt(id, 10))
+      const item = response.data
+      return {
+        id: String(item.receipt_id),
+        date: item.receipt_date || '',
+        store: item.store_name || '',
+        amount: item.total_amount || 0,
+        category: item.category || '',
+        status: 'pending' as const,
+        tags: item.tags || [],
+        imageUrl: undefined,
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'レシート詳細の取得に失敗しました'
+      setError(message)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const approveReceipt = async (payload: ApproveReceiptPayload): Promise<{ success: boolean; error?: string }> => {
+    setLoading(true)
+    setError(null)
+    try {
+      await apiApproveReceipt(parseInt(payload.receiptId, 10), payload.comment)
+      return { success: true }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '承認に失敗しました'
       setError(message)
-      result = { success: false, error: message }
+      return { success: false, error: message }
     } finally {
       setLoading(false)
     }
-    return result
   }
 
-  const rejectReceipt = async (_payload: RejectReceiptPayload): Promise<{ success: boolean; error?: string }> => {
+  const rejectReceipt = async (payload: RejectReceiptPayload): Promise<{ success: boolean; error?: string }> => {
     setLoading(true)
     setError(null)
-    let result: { success: boolean; error?: string }
     try {
-      // const response = await api.receiptApproval.reject(payload)
-      // return response
-      result = { success: true }
+      await apiRejectReceipt(parseInt(payload.receiptId, 10), payload.reason)
+      return { success: true }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '却下に失敗しました'
       setError(message)
-      result = { success: false, error: message }
+      return { success: false, error: message }
     } finally {
       setLoading(false)
     }
-    return result
   }
 
-  const checkDuplicates = async (_payload: CheckDuplicatesPayload): Promise<DuplicateCheckResult> => {
+  const checkDuplicates = async (): Promise<DuplicateCheckResult> => {
     setLoading(true)
     setError(null)
-    let result: DuplicateCheckResult
     try {
-      // const response = await api.duplicateCheck.check(payload)
-      // setDuplicateCheckResult(response)
-      // return response
-      result = { duplicates: [], score: 0 }
+      const response = await apiGetDuplicateChecks()
+      const duplicates: DuplicateReceipt[] = response.data.map((item: SearchResultItem) => ({
+        receipt: {
+          id: String(item.receipt_id),
+          date: item.receipt_date || '',
+          store: item.store_name || '',
+          amount: item.total_amount || 0,
+          category: item.category || '',
+          status: 'pending' as const,
+          tags: item.tags || [],
+          imageUrl: undefined,
+        },
+        score: item.score,
+      }))
+      const result: DuplicateCheckResult = { duplicates, score: duplicates.length > 0 ? duplicates[0].score : 0 }
+      setDuplicateCheckResult(result)
+      return result
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : '重複チェックに失敗しました'
       setError(message)
-      result = { duplicates: [], score: 0 }
+      return { duplicates: [], score: 0 }
     } finally {
       setLoading(false)
     }
-    return result
+  }
+
+  const approveDuplicateCheck = async (id: string, comment?: string): Promise<{ success: boolean; error?: string }> => {
+    setLoading(true)
+    setError(null)
+    try {
+      await apiApproveDuplicateCheck(parseInt(id, 10), comment)
+      return { success: true }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '重複チェック承認に失敗しました'
+      setError(message)
+      return { success: false, error: message }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const rejectDuplicateCheck = async (id: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    setLoading(true)
+    setError(null)
+    try {
+      await apiRejectDuplicateCheck(parseInt(id, 10), reason)
+      return { success: true }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '重複チェック却下に失敗しました'
+      setError(message)
+      return { success: false, error: message }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const fetchApprovedFiles = async (): Promise<ApprovedFileInfo[]> => {
     setLoading(true)
     setError(null)
-    let result: ApprovedFileInfo[]
     try {
-      // const response = await api.fileManagement.listApproved()
-      // return response.files
-      result = []
+      const response = await apiGetApprovedFiles()
+      return response.data.map((item: ApprovedFileListResponse['items'][0]) => ({
+        id: item.filepath, // Use filepath as id
+        fileName: item.filename,
+        date: item.modified_at.split('T')[0], // Extract date from modified_at
+        store: '', // Not available in ApprovedFileInfo
+        amount: 0, // Not available
+        category: item.category_folder,
+      }))
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'ファイル一覧の取得に失敗しました'
       setError(message)
-      result = []
+      return []
     } finally {
       setLoading(false)
     }
-    return result
   }
 
   return {
@@ -206,9 +310,13 @@ export const useReceiptsStore = defineStore('receipts', () => {
     setLoading,
     setError,
     clearError,
+    fetchReceipts,
+    fetchReceipt,
     approveReceipt,
     rejectReceipt,
     checkDuplicates,
+    approveDuplicateCheck,
+    rejectDuplicateCheck,
     fetchApprovedFiles,
   }
 })
