@@ -9,8 +9,8 @@ from app.services.search_index_service import (
     SearchIndexService,
     SearchResult,
     SearchIndexStats,
-    get_search_index_service,
 )
+from app.api.v1.dependencies import get_search_index_service
 
 
 class TestSearchIndexService:
@@ -259,9 +259,8 @@ class TestSearchIndexStats:
 class TestGetSearchIndexService:
     """Tests for get_search_index_service helper."""
 
-    @pytest.mark.asyncio
-    async def test_returns_instance(self):
+    def test_returns_instance(self):
         """Test that helper returns service instance."""
         mock_session = AsyncMock()
-        service = await get_search_index_service(mock_session)
+        service = get_search_index_service(mock_session)
         assert isinstance(service, SearchIndexService)
