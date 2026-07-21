@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '../stores/ui'
 import { useReceiptsStore } from '../stores/receipts'
 import AppLoading from './ui/AppLoading.vue'
@@ -12,6 +12,7 @@ import AppInput from './ui/AppInput.vue'
 const uiStore = useUIStore()
 const receiptsStore = useReceiptsStore()
 const route = useRoute()
+const router = useRouter()
 
 // Data
 const loading = ref(false)
@@ -23,6 +24,15 @@ const selectedCheck = ref<any>(null)
 const rejectReason = ref('')
 const isSubmitting = ref(false)
 
+// Computed
+const sourceReceipt = computed(() => {
+  return selectedCheck.value?.source_receipt || {}
+})
+
+const targetReceipt = computed(() => {
+  return selectedCheck.value?.target_receipt || {}
+})
+
 // Methods
 const loadDuplicateChecks = async () => {
   loading.value = true
@@ -30,7 +40,7 @@ const loadDuplicateChecks = async () => {
   
   try {
     // Get potential duplicates for the current receipt
-    const receiptId = parseInt(useRoute().params.id as string, 10)
+    const receiptId = parseInt(route.params.id as string, 10)
     const response = await receiptsStore.getReceiptDuplicateChecks(receiptId)
     
     // Format data for display
@@ -44,6 +54,11 @@ const loadDuplicateChecks = async () => {
       sourceReceipt: check.source_receipt, // This will need to be fetched separately
       targetReceipt: check.target_receipt, // This will need to be fetched separately
     }))
+    
+    // Set the first duplicate check as selected if available
+    if (duplicateChecks.value.length > 0) {
+      selectedCheck.value = duplicateChecks.value[0]
+    }
     
   } catch (err) {
     error.value = '重複候補の読み込みに失敗しました'
@@ -80,6 +95,9 @@ const submitApproval = async () => {
     showApprovalModal.value = false
     // Reload data
     await loadDuplicateChecks()
+    
+    // Redirect to result view after approval
+    router.push(`/receipts/${selectedCheck.value.sourceReceiptId}/duplicate-result`)
   } catch (err) {
     uiStore.showError('承認処理に失敗しました')
     console.error(err)
@@ -103,6 +121,9 @@ const submitReject = async () => {
     rejectReason.value = ''
     // Reload data
     await loadDuplicateChecks()
+    
+    // Redirect to result view after rejection
+    router.push(`/receipts/${selectedCheck.value.sourceReceiptId}/duplicate-result`)
   } catch (err) {
     uiStore.showError('却下処理に失敗しました')
     console.error(err)
@@ -142,8 +163,9 @@ onMounted(() => {
             <!-- Current Receipt -->
             <div class="border border-gray-200 rounded-lg p-4">
               <h4 class="font-medium text-gray-900 mb-3">今回レシート</h4>
-              <div class="space-y-3">
-                <div v-for="(value, key) in selectedCheck?.sourceReceipt" :key="key" class="flex justify-between text-sm">
+              
+              <div class="space-y-3 mb-4">
+                <div v-for="(value, key) in sourceReceipt" :key="key" class="flex justify-between text-sm">
                   <span class="text-gray-600">{{ key }}:</span>
                   <span class="font-medium">{{ value }}</span>
                 </div>
@@ -166,8 +188,9 @@ onMounted(() => {
             <!-- Duplicate Candidate -->
             <div class="border border-gray-200 rounded-lg p-4">
               <h4 class="font-medium text-gray-900 mb-3">重複候補レシート</h4>
-              <div class="space-y-3">
-                <div v-for="(value, key) in selectedCheck?.targetReceipt" :key="key" class="flex justify-between text-sm">
+              
+              <div class="space-y-3 mb-4">
+                <div v-for="(value, key) in targetReceipt" :key="key" class="flex justify-between text-sm">
                   <span class="text-gray-600">{{ key }}:</span>
                   <span class="font-medium">{{ value }}</span>
                 </div>
@@ -254,10 +277,10 @@ onMounted(() => {
         
         <div class="bg-gray-50 rounded-lg p-4">
           <div class="grid grid-cols-2 gap-2 text-sm">
-            <div><span class="font-medium">店舗名:</span> {{ selectedCheck?.target_receipt?.store_name }}</div>
-            <div><span class="font-medium">日付:</span> {{ selectedCheck?.target_receipt?.date }}</div>
-            <div><span class="font-medium">金額:</span> {{ selectedCheck?.target_receipt?.amount }}</div>
-            <div><span class="font-medium">勘定科目:</span> {{ selectedCheck?.target_receipt?.category }}</div>
+            <div><span class="font-medium">店舗名:</span> {{ targetReceipt.store_name }}</div>
+            <div><span class="font-medium">日付:</span> {{ targetReceipt.date }}</div>
+            <div><span class="font-medium">金額:</span> {{ targetReceipt.amount }}</div>
+            <div><span class="font-medium">勘定科目:</span> {{ targetReceipt.category }}</div>
           </div>
         </div>
 

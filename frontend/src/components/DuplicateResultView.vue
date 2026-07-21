@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '../stores/ui'
 import { useReceiptsStore } from '../stores/receipts'
 import AppLoading from './ui/AppLoading.vue'
 import AppButton from './ui/AppButton.vue'
 import AppModal from './ui/AppModal.vue'
+import AppInput from './ui/AppInput.vue'
 
 // Store
 const uiStore = useUIStore()
 const receiptsStore = useReceiptsStore()
 const route = useRoute()
+const router = useRouter()
 
 // Data
 const loading = ref(false)
@@ -57,7 +59,7 @@ const loadDuplicateCheck = async (checkId: number) => {
 
 const handleFinalDecision = (isApproved: boolean) => {
   if (isApproved) {
-    // For approval, just show confirmation
+    // For approval, just submit the approval
     submitApproval()
   } else {
     // For rejection, show reason input
@@ -78,6 +80,7 @@ const submitApproval = async () => {
     
     uiStore.showSuccess('承認が完了しました')
     // Reload data or redirect to dashboard
+    router.push(`/receipts/${currentCheck.value.sourceReceiptId}/approve`)
   } catch (err) {
     uiStore.showError('承認処理に失敗しました')
     console.error(err)
@@ -100,6 +103,7 @@ const submitReject = async () => {
     showRejectReasonModal.value = false
     rejectReason.value = ''
     // Reload data or redirect to dashboard
+    router.push(`/receipts/${currentCheck.value.sourceReceiptId}/approve`)
   } catch (err) {
     uiStore.showError('却下処理に失敗しました')
     console.error(err)
@@ -111,7 +115,7 @@ const submitReject = async () => {
 // Lifecycle
 onMounted(() => {
   // Get check ID from route parameters
-  const checkId = parseInt(useRoute().params.id as string, 10)
+  const checkId = parseInt(route.params.id as string, 10)
   loadDuplicateCheck(checkId)
 })
 </script>
@@ -254,11 +258,11 @@ onMounted(() => {
       <div class="space-y-4">
         <p>レシートを不合格にする理由を入力してください</p>
         
-        <textarea
+        <AppInput
           v-model="rejectReason"
+          label="却下理由"
           placeholder="例: 重複していないため"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows="4"
+          :rows="3"
           data-testid="final-reject-reason-input"
         />
 
