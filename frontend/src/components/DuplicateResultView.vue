@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUIStore } from '../stores/ui'
 import { useReceiptsStore } from '../stores/receipts'
 import AppLoading from './ui/AppLoading.vue'
@@ -9,6 +10,7 @@ import AppModal from './ui/AppModal.vue'
 // Store
 const uiStore = useUIStore()
 const receiptsStore = useReceiptsStore()
+const route = useRoute()
 
 // Data
 const loading = ref(false)
@@ -28,14 +30,14 @@ const loadDuplicateCheck = async (checkId: number) => {
     currentCheck.value = response.data
     
     // Also fetch the related receipts
-    if (response.data.source_receipt_id) {
-      const sourceReceipt = await receiptsStore.getReceipt(response.data.source_receipt_id)
-      currentCheck.value.source_receipt = sourceReceipt.data
+    if (response.data.sourceReceiptId) {
+      const sourceReceipt = await receiptsStore.getReceipt(response.data.sourceReceiptId)
+      currentCheck.value.sourceReceipt = sourceReceipt.data
     }
     
-    if (response.data.target_receipt_id) {
-      const targetReceipt = await receiptsStore.getReceipt(response.data.target_receipt_id)
-      currentCheck.value.target_receipt = targetReceipt.data
+    if (response.data.targetReceiptId) {
+      const targetReceipt = await receiptsStore.getReceipt(response.data.targetReceiptId)
+      currentCheck.value.targetReceipt = targetReceipt.data
     }
   } catch (err) {
     error.value = 'データの読み込みに失敗しました'
@@ -63,8 +65,8 @@ const submitApproval = async () => {
   isSubmitting.value = true
   try {
     await receiptsStore.reviewDuplicateCheck(currentCheck.value.id, {
-      user_confirmed: true,
-      user_note: null
+      userConfirmed: true,
+      userNote: ''
     })
     
     uiStore.showSuccess('承認が完了しました')
@@ -83,8 +85,8 @@ const submitReject = async () => {
   isSubmitting.value = true
   try {
     await receiptsStore.reviewDuplicateCheck(currentCheck.value.id, {
-      user_confirmed: false,
-      user_note: rejectReason.value.trim()
+      userConfirmed: false,
+      userNote: rejectReason.value.trim()
     })
     
     uiStore.showSuccess('却下が完了しました')
@@ -101,8 +103,9 @@ const submitReject = async () => {
 
 // Lifecycle
 onMounted(() => {
-  // TODO: Get check ID from route parameters
-  loadDuplicateCheck(1) // Placeholder ID
+  // Get check ID from route parameters
+  const checkId = parseInt(useRoute().params.id as string, 10)
+  loadDuplicateCheck(checkId)
 })
 </script>
 
@@ -139,15 +142,15 @@ onMounted(() => {
             <div class="mt-3 space-y-2">
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">店舗名:</span>
-                <span class="font-medium">{{ currentCheck.source_receipt?.store_name }}</span>
+                <span class="font-medium">{{ currentCheck.sourceReceipt?.store_name }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">日付:</span>
-                <span class="font-medium">{{ currentCheck.source_receipt?.date }}</span>
+                <span class="font-medium">{{ currentCheck.sourceReceipt?.date }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">金額:</span>
-                <span class="font-medium">{{ currentCheck.source_receipt?.amount }}</span>
+                <span class="font-medium">{{ currentCheck.sourceReceipt?.amount }}</span>
               </div>
             </div>
           </div>
@@ -169,15 +172,15 @@ onMounted(() => {
             <div class="mt-3 space-y-2">
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">店舗名:</span>
-                <span class="font-medium">{{ currentCheck.target_receipt?.store_name }}</span>
+                <span class="font-medium">{{ currentCheck.targetReceipt?.store_name }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">日付:</span>
-                <span class="font-medium">{{ currentCheck.target_receipt?.date }}</span>
+                <span class="font-medium">{{ currentCheck.targetReceipt?.date }}</span>
               </div>
               <div class="flex justify-between text-sm">
                 <span class="text-gray-600">金額:</span>
-                <span class="font-medium">{{ currentCheck.target_receipt?.amount }}</span>
+                <span class="font-medium">{{ currentCheck.targetReceipt?.amount }}</span>
               </div>
             </div>
           </div>
@@ -195,11 +198,11 @@ onMounted(() => {
         <div class="border border-gray-200 rounded-lg p-4">
           <h3 class="font-medium text-gray-900 mb-3">重複判定結果</h3>
           <div class="flex items-center gap-4">
-            <div class="text-xl font-bold" :class="currentCheck.is_duplicate ? 'text-red-600' : 'text-green-600'">
-              {{ currentCheck.is_duplicate ? '重複' : '重複ではない' }}
+            <div class="text-xl font-bold" :class="currentCheck.isDuplicate ? 'text-red-600' : 'text-green-600'">
+              {{ currentCheck.isDuplicate ? '重複' : '重複ではない' }}
             </div>
             <div class="bg-gray-100 rounded-lg px-3 py-1 text-sm">
-              総合スコア: {{ currentCheck.composite_score }}
+              総合スコア: {{ currentCheck.compositeScore }}
             </div>
           </div>
         </div>

@@ -220,75 +220,37 @@ export const useReceiptsStore = defineStore('receipts', () => {
     }
   }
 
-  const checkDuplicates = async (payload: CheckDuplicatesPayload): Promise<DuplicateCheckResult> => {
+  const getReceiptDuplicateChecks = async (receiptId: number): Promise<{ data: any[] }> => {
     setLoading(true)
     setError(null)
     try {
-      const receiptId = parseInt(payload.receiptId, 10)
       const response = await DuplicateCheckService.getReceiptDuplicateChecksApiV1DuplicateCheckReceiptReceiptIdChecksGet(
         receiptId
       )
-      // response is Array<DuplicateCheckListResponse> - transform to DuplicateCheckResult
-      const duplicates: DuplicateReceipt[] = response.map((item: DuplicateCheckListResponse) => ({
-        receipt: {
-          id: item.target_receipt_id.toString(),
-          date: '',
-          store: '',
-          amount: 0,
-          category: '',
-          status: 'pending' as const,
-          tags: [],
-          imageUrl: undefined,
-        },
-        score: item.composite_score || 0,
-      }))
-      const result: DuplicateCheckResult = { duplicates, score: duplicates.length > 0 ? duplicates[0].score : 0 }
-      setDuplicateCheckResult(result)
-      return result
+      return { data: response }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '重複チェックに失敗しました'
+      const message = err instanceof Error ? err.message : '重複チェックの取得に失敗しました'
       setError(message)
-      return { duplicates: [], score: 0 }
+      return { data: [] }
     } finally {
       setLoading(false)
     }
   }
 
-  const approveDuplicateCheck = async (id: string, comment?: string): Promise<{ success: boolean; error?: string }> => {
+  const reviewDuplicateCheck = async (id: string, payload: { userConfirmed: boolean; userNote: string }): Promise<{ success: boolean; error?: string }> => {
     setLoading(true)
     setError(null)
     try {
       await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
         parseInt(id, 10),
         {
-          user_confirmed: true,
-          user_note: comment,
+          user_confirmed: payload.userConfirmed,
+          user_note: payload.userNote,
         }
       )
       return { success: true }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '重複チェック承認に失敗しました'
-      setError(message)
-      return { success: false, error: message }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const rejectDuplicateCheck = async (id: string, reason: string): Promise<{ success: boolean; error?: string }> => {
-    setLoading(true)
-    setError(null)
-    try {
-      await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
-        parseInt(id, 10),
-        {
-          user_confirmed: false,
-          user_note: reason,
-        }
-      )
-      return { success: true }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '重複チェック却下に失敗しました'
+      const message = err instanceof Error ? err.message : '重複チェック処理に失敗しました'
       setError(message)
       return { success: false, error: message }
     } finally {
@@ -346,9 +308,8 @@ export const useReceiptsStore = defineStore('receipts', () => {
     fetchReceipt,
     approveReceipt,
     rejectReceipt,
-    checkDuplicates,
-    approveDuplicateCheck,
-    rejectDuplicateCheck,
+    getReceiptDuplicateChecks,
+    reviewDuplicateCheck,
     fetchApprovedFiles,
   }
 })

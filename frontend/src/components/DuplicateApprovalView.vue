@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUIStore } from '../stores/ui'
 import { useReceiptsStore } from '../stores/receipts'
 import AppLoading from './ui/AppLoading.vue'
@@ -10,6 +11,7 @@ import AppInput from './ui/AppInput.vue'
 // Store
 const uiStore = useUIStore()
 const receiptsStore = useReceiptsStore()
+const route = useRoute()
 
 // Data
 const loading = ref(false)
@@ -28,18 +30,19 @@ const loadDuplicateChecks = async () => {
   
   try {
     // Get potential duplicates for the current receipt
-    const response = await receiptsStore.getPotentialDuplicates(1) // TODO: Replace with actual receipt ID
+    const receiptId = parseInt(useRoute().params.id as string, 10)
+    const response = await receiptsStore.getReceiptDuplicateChecks(receiptId)
     
     // Format data for display
     duplicateChecks.value = response.data.map((check: any) => ({
       id: check.id,
-      source_receipt_id: check.source_receipt_id,
-      target_receipt_id: check.target_receipt_id,
-      is_duplicate: check.is_duplicate,
-      composite_score: check.composite_score,
-      score_components: check.score_components,
-      source_receipt: check.source_receipt, // This will need to be fetched separately
-      target_receipt: check.target_receipt, // This will need to be fetched separately
+      sourceReceiptId: check.source_receipt_id,
+      targetReceiptId: check.target_receipt_id,
+      isDuplicate: check.is_duplicate,
+      compositeScore: check.composite_score,
+      scoreComponents: check.score_components,
+      sourceReceipt: check.source_receipt, // This will need to be fetched separately
+      targetReceipt: check.target_receipt, // This will need to be fetched separately
     }))
     
   } catch (err) {
@@ -69,8 +72,8 @@ const submitApproval = async () => {
   isSubmitting.value = true
   try {
     await receiptsStore.reviewDuplicateCheck(selectedCheck.value.id, {
-      user_confirmed: true,
-      user_note: null
+      userConfirmed: true,
+      userNote: ''
     })
     
     uiStore.showSuccess('承認が完了しました')
@@ -91,8 +94,8 @@ const submitReject = async () => {
   isSubmitting.value = true
   try {
     await receiptsStore.reviewDuplicateCheck(selectedCheck.value.id, {
-      user_confirmed: false,
-      user_note: rejectReason.value.trim()
+      userConfirmed: false,
+      userNote: rejectReason.value.trim()
     })
     
     uiStore.showSuccess('却下が完了しました')
@@ -140,7 +143,7 @@ onMounted(() => {
             <div class="border border-gray-200 rounded-lg p-4">
               <h4 class="font-medium text-gray-900 mb-3">今回レシート</h4>
               <div class="space-y-3">
-                <div v-for="(value, key) in selectedCheck?.source_receipt" :key="key" class="flex justify-between text-sm">
+                <div v-for="(value, key) in selectedCheck?.sourceReceipt" :key="key" class="flex justify-between text-sm">
                   <span class="text-gray-600">{{ key }}:</span>
                   <span class="font-medium">{{ value }}</span>
                 </div>
@@ -164,7 +167,7 @@ onMounted(() => {
             <div class="border border-gray-200 rounded-lg p-4">
               <h4 class="font-medium text-gray-900 mb-3">重複候補レシート</h4>
               <div class="space-y-3">
-                <div v-for="(value, key) in selectedCheck?.target_receipt" :key="key" class="flex justify-between text-sm">
+                <div v-for="(value, key) in selectedCheck?.targetReceipt" :key="key" class="flex justify-between text-sm">
                   <span class="text-gray-600">{{ key }}:</span>
                   <span class="font-medium">{{ value }}</span>
                 </div>
@@ -190,7 +193,7 @@ onMounted(() => {
             <h4 class="font-medium text-gray-900 mb-3">スコア構成要素</h4>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div 
-                v-for="(score, key) in selectedCheck?.score_components" 
+                v-for="(score, key) in selectedCheck?.scoreComponents" 
                 :key="key"
                 class="bg-gray-50 rounded-lg p-3 text-center"
               >
@@ -204,7 +207,7 @@ onMounted(() => {
           <div class="mt-4 bg-blue-50 rounded-lg p-4">
             <div class="flex justify-between items-center">
               <span class="font-medium text-gray-900">総合スコア</span>
-              <span class="text-xl font-bold text-blue-600">{{ selectedCheck?.composite_score }}</span>
+              <span class="text-xl font-bold text-blue-600">{{ selectedCheck?.compositeScore }}</span>
             </div>
           </div>
         </div>
