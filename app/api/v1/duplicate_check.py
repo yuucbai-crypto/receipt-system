@@ -7,6 +7,7 @@ Implements RULE-FLOW-001-7: Duplicate candidate check.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.api.v1.dependencies import get_db_session_dep
@@ -39,7 +40,7 @@ router = APIRouter(prefix="/duplicate-check", tags=["Duplicate Check"])
 )
 async def check_duplicate(
     request: DuplicateCheckRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     service: DuplicateCheckService = Depends(get_duplicate_check_service),
 ) -> DuplicateCheckResponse:
     """Execute duplicate check between two receipts.
@@ -103,7 +104,7 @@ async def check_duplicate(
 )
 async def find_duplicates(
     request: FindDuplicatesRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     service: DuplicateCheckService = Depends(get_duplicate_check_service),
 ) -> FindDuplicatesResponse:
     """Find potential duplicates for a receipt.
@@ -160,7 +161,7 @@ async def find_duplicates(
 )
 async def get_duplicate_check(
     duplicate_check_id: int,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
 ) -> DuplicateCheckListResponse:
     """Get duplicate check result by ID.
 
@@ -194,7 +195,7 @@ async def get_duplicate_check(
 async def review_duplicate_check(
     duplicate_check_id: int,
     request: DuplicateCheckReviewRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
 ) -> DuplicateCheckReviewResponse:
     """Record user's duplicate review decision.
 
@@ -246,7 +247,7 @@ async def review_duplicate_check(
 )
 async def get_receipt_duplicate_checks(
     receipt_id: int,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
 ) -> list[DuplicateCheckListResponse]:
     """Get duplicate check history for a receipt.
 

@@ -33,6 +33,21 @@ export interface ReceiptFilters {
   endDate?: string;
 }
 
+// 承認リクエストの型定義
+export interface ReceiptApprovalRequest {
+  approve: boolean;
+  receipt_id: number;
+}
+
+// 却下リクエストの型定義
+export interface ReceiptRejectRequest {
+  receipt_id: number;
+  rejection_reason?: {
+    reason_code: string;
+    reason_text: string;
+  };
+}
+
 /**
  * レシート一覧を取得
  */
@@ -53,6 +68,37 @@ export const getReceipts = async (filters: ReceiptFilters): Promise<ReceiptListR
     return response.data;
   } catch (error) {
     console.error('レシート一覧取得エラー:', error);
+    throw error;
+  }
+};
+
+/**
+ * レシートを承認
+ */
+export const approveReceipt = async (receiptId: number): Promise<void> => {
+  try {
+    await apiClient.post('/api/v1/receipt-approval/approve', {
+      receipt_id: receiptId,
+      approve: true
+    });
+  } catch (error) {
+    console.error('レシート承認エラー:', error);
+    throw error;
+  }
+};
+
+/**
+ * レシートを却下
+ */
+export const rejectReceipt = async (receiptId: number, rejectionReason?: { reason_code: string; reason_text: string }): Promise<void> => {
+  try {
+    await apiClient.post('/api/v1/receipt-approval/reject', {
+      receipt_id: receiptId,
+      approve: false,
+      rejection_reason: rejectionReason
+    });
+  } catch (error) {
+    console.error('レシート却下エラー:', error);
     throw error;
   }
 };

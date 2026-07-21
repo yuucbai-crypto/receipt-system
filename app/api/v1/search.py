@@ -7,6 +7,7 @@ Implements RULE-FLOW-001-14: Search index update for confirmed receipts.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_db_session_dep
 from app.schemas.search import (
@@ -34,7 +35,7 @@ router = APIRouter(prefix="/search", tags=["Search"])
 )
 async def search_receipts(
     request: SearchRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     search_service: SearchIndexService = Depends(get_search_index_service),
 ) -> SearchResponse:
     """Full-text search for receipts.
@@ -93,7 +94,7 @@ async def search_receipts(
     description="検索インデックスの統計情報を取得します。",
 )
 async def get_search_index_stats(
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     search_service: SearchIndexService = Depends(get_search_index_service),
 ) -> SearchIndexStatsResponse:
     """Get search index statistics.
@@ -123,7 +124,7 @@ async def get_search_index_stats(
 )
 async def rebuild_search_index(
     request: RebuildIndexRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     search_service: SearchIndexService = Depends(get_search_index_service),
 ) -> RebuildIndexResponse:
     """Rebuild search index from all receipts.
@@ -176,7 +177,7 @@ async def rebuild_search_index(
 )
 async def index_single_receipt(
     receipt_id: int,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     search_service: SearchIndexService = Depends(get_search_index_service),
 ) -> RebuildIndexResponse:
     """Index or update a single receipt in search index.
@@ -228,7 +229,7 @@ async def index_single_receipt(
 )
 async def remove_from_search_index(
     receipt_id: int,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     search_service: SearchIndexService = Depends(get_search_index_service),
 ) -> RebuildIndexResponse:
     """Remove a receipt from search index.

@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.api.v1.dependencies import get_db_session_dep
@@ -43,7 +44,7 @@ router = APIRouter(prefix="/receipt-approval", tags=["Receipt Approval"])
 )
 async def approve_receipt(
     request: ReceiptApprovalRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     file_service: FileSortingService = Depends(get_file_sorting_service),
 ) -> ReceiptApprovalResponse:
     """Approve a receipt and sort its file.
@@ -129,7 +130,7 @@ async def approve_receipt(
 )
 async def reject_receipt(
     request: ReceiptRejectRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     rejection_service: RejectionReasonService = Depends(get_rejection_reason_service),
 ) -> ReceiptApprovalResponse:
     """Reject a receipt with reason.
@@ -210,7 +211,7 @@ async def reject_receipt(
 )
 async def get_rejection_reason(
     receipt_id: int,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     rejection_service: RejectionReasonService = Depends(get_rejection_reason_service),
 ) -> RejectionReasonResponse:
     """Get rejection reason for a receipt.
@@ -249,7 +250,7 @@ async def list_rejection_reasons(
     is_for_ai_training: bool | None = None,
     page: int = 1,
     page_size: int = 20,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     rejection_service: RejectionReasonService = Depends(get_rejection_reason_service),
 ) -> RejectionReasonListResponse:
     """List rejection reasons with filtering and pagination.

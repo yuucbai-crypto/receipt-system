@@ -16,6 +16,9 @@ from typing import TYPE_CHECKING
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import Depends
+
+from app.api.v1.dependencies import get_db_session_dep
 from app.core.config import get_settings
 from app.core.logging import get_logger
 
@@ -542,12 +545,13 @@ class SearchIndexService:
                 index_size_bytes=0,
             )
 
-
-async def get_search_index_service(session) -> SearchIndexService:
+def get_search_index_service(
+    session=Depends(get_db_session_dep),
+) -> SearchIndexService:
     """Dependency injection helper for SearchIndexService.
 
     Args:
-        session: Database session.
+        session: Database session (injected).
 
     Returns:
         SearchIndexService instance.

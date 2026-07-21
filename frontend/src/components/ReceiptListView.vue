@@ -35,11 +35,11 @@
         />
       </div>
       
-      <AppButton @click="applyFilters" data-testid="apply-filters-button">
+      <AppButton data-testid="apply-filters-button" @click="applyFilters">
         適用
       </AppButton>
       
-      <AppButton @click="resetFilters" data-testid="reset-filters-button">
+      <AppButton data-testid="reset-filters-button" @click="resetFilters">
         リセット
       </AppButton>
     </div>
@@ -58,8 +58,8 @@
       :rows="receipts"
       :row-key="'id'"
       :loading="loading"
-      @row-click="handleRowClick"
       data-testid="receipt-list-table"
+      @row-click="handleRowClick"
     >
       <template #cell-date="{ item }">
         {{ formatDate(item.date) }}
@@ -95,9 +95,9 @@
     <!-- ページネーション -->
     <div class="pagination" data-testid="receipt-list-pagination">
       <AppButton 
-        @click="prevPage" 
-        :disabled="currentPage <= 1"
+        :disabled="currentPage <= 1" 
         data-testid="prev-page-button"
+        @click="prevPage"
       >
         前へ
       </AppButton>
@@ -105,9 +105,9 @@
       <span>{{ currentPage }} / {{ totalPages }}</span>
       
       <AppButton 
-        @click="nextPage" 
-        :disabled="currentPage >= totalPages"
+        :disabled="currentPage >= totalPages" 
         data-testid="next-page-button"
+        @click="nextPage"
       >
         次へ
       </AppButton>
@@ -117,8 +117,8 @@
     <AppModal 
       v-if="selectedReceipt"
       :model-value="!!selectedReceipt"
-      @close="closeDetailModal"
       data-testid="receipt-detail-modal"
+      @close="closeDetailModal"
     >
       <template #header>
         <h2>レシート詳細</h2>

@@ -52,8 +52,8 @@
         :src="receipt.image_url" 
         :alt="`レシート画像 - ${receipt.id}`"
         :open="true"
-        @close="$emit('close')"
         data-testid="receipt-image"
+        @close="$emit('close')"
       />
     </div>
 
@@ -77,30 +77,33 @@
     <div class="actions" data-testid="receipt-detail-actions">
       <AppButton 
         v-if="receipt.status === 'pending'" 
-        @click="approveReceipt"
         data-testid="approve-receipt-button"
+        @click="approveReceiptAction"
       >
         承認
       </AppButton>
       
       <AppButton 
         v-if="receipt.status === 'pending'" 
-        @click="rejectReceipt"
         data-testid="reject-receipt-button"
+        @click="rejectReceiptAction"
       >
         却下
       </AppButton>
       
+      <!-- 再解析ボタン (Backend API未提供のため、実装保留) -->
+      <!--
       <AppButton 
-        @click="reprocessReceipt"
+        @click="reprocessReceiptAction"
         data-testid="reprocess-receipt-button"
       >
         再解析
       </AppButton>
+      -->
       
       <AppButton 
-        @click="$emit('close')"
         data-testid="close-detail-button"
+        @click="$emit('close')"
       >
         閉じる
       </AppButton>
@@ -114,6 +117,7 @@ import { formatDate, formatCurrency } from '@/utils/currency';
 import AppBadge from '@/components/ui/AppBadge.vue';
 import AppImagePreview from '@/components/ui/AppImagePreview.vue';
 import AppButton from '@/components/ui/AppButton.vue';
+import { approveReceipt, rejectReceipt } from '@/api/receipts';
 
 // プロパティ
 const props = defineProps<{
@@ -137,25 +141,47 @@ const getStatusText = (status: string) => {
 };
 
 // 承認
-const approveReceipt = async () => {
-  // 実際のAPI呼び出しはここに実装
-  console.log('レシート承認:', props.receipt.id);
-  // 実装完了後、API呼び出しを追加する
+const approveReceiptAction = async () => {
+  try {
+    await approveReceipt(props.receipt.id);
+    // 成功時は親コンポーネントに通知
+    emit('close');
+  } catch (error) {
+    console.error('レシート承認エラー:', error);
+    // エラーメッセージの表示などはここで処理
+  }
 };
 
-// 却下
-const rejectReceipt = async () => {
-  // 実際のAPI呼び出しはここに実装
-  console.log('レシート却下:', props.receipt.id);
-  // 実装完了後、API呼び出しを追加する
+// 卻下
+const rejectReceiptAction = async () => {
+  try {
+    // 却下理由を入力するモーダルを表示
+    const reason = prompt('却下理由を入力してください');
+    if (reason) {
+      await rejectReceipt(props.receipt.id, {
+        reason_code: 'USER_INPUT',
+        reason_text: reason
+      });
+      // 成功時は親コンポーネントに通知
+      emit('close');
+    }
+  } catch (error) {
+    console.error('レシート却下エラー:', error);
+    // エラーメッセージの表示などはここで処理
+  }
 };
 
-// 再解析
-const reprocessReceipt = async () => {
-  // 実際のAPI呼び出しはここに実装
-  console.log('レシート再解析:', props.receipt.id);
-  // 実装完了後、API呼び出しを追加する
-};
+// 再解析 (Backend API未提供のため、実装保留)
+// const reprocessReceiptAction = async () => {
+//   try {
+//     await reprocessReceipt(props.receipt.id);
+//     // 成功時は親コンポーネントに通知
+//     emit('close');
+//   } catch (error) {
+//     console.error('レシート再解析エラー:', error);
+//     // エラーメッセージの表示などはここで処理
+//   }
+// };
 </script>
 
 <style scoped>
