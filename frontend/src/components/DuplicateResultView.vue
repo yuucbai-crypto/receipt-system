@@ -26,18 +26,25 @@ const loadDuplicateCheck = async (checkId: number) => {
   error.value = null
   
   try {
-    const response = await receiptsStore.getDuplicateCheck(checkId)
-    currentCheck.value = response.data
+    const response = await receiptsStore.getReceiptDuplicateChecks(checkId)
     
-    // Also fetch the related receipts
-    if (response.data.sourceReceiptId) {
-      const sourceReceipt = await receiptsStore.getReceipt(response.data.sourceReceiptId)
-      currentCheck.value.sourceReceipt = sourceReceipt.data
-    }
-    
-    if (response.data.targetReceiptId) {
-      const targetReceipt = await receiptsStore.getReceipt(response.data.targetReceiptId)
-      currentCheck.value.targetReceipt = targetReceipt.data
+    // Assuming the first item in the array is the check we're interested in
+    if (response.data && response.data.length > 0) {
+      currentCheck.value = response.data[0]
+      
+      // Also fetch the related receipts
+      if (currentCheck.value.sourceReceiptId) {
+        const sourceReceipt = await receiptsStore.getReceipt(currentCheck.value.sourceReceiptId)
+        currentCheck.value.sourceReceipt = sourceReceipt.data
+      }
+      
+      if (currentCheck.value.targetReceiptId) {
+        const targetReceipt = await receiptsStore.getReceipt(currentCheck.value.targetReceiptId)
+        currentCheck.value.targetReceipt = targetReceipt.data
+      }
+    } else {
+      error.value = 'データが見つかりません'
+      uiStore.showError('エラーが発生しました')
     }
   } catch (err) {
     error.value = 'データの読み込みに失敗しました'
