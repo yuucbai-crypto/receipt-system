@@ -3,7 +3,6 @@ import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import App from './App.vue'
 import './style.css'
-import router from './router'
 
 // Import UI components
 import AppButton from './components/ui/AppButton.vue'
@@ -16,16 +15,11 @@ import AppImagePreview from './components/ui/AppImagePreview.vue'
 import AppBadge from './components/ui/AppBadge.vue'
 import AppTabs from './components/ui/AppTabs.vue'
 
-// Import Chart.js
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables);
-
 const app = createApp(App)
 
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
-app.use(router)
 
 // Register global components
 app.component('AppButton', AppButton)

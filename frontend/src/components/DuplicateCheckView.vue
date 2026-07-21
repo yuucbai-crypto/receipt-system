@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useUIStore } from '../stores/ui'
+import { useReceiptsStore } from '../stores/receipts'
 import AppLoading from './ui/AppLoading.vue'
 import AppButton from './ui/AppButton.vue'
 import AppTable from './ui/AppTable.vue'
@@ -8,6 +9,8 @@ import AppModal from './ui/AppModal.vue'
 
 // Store
 const uiStore = useUIStore()
+const receiptsStore = useReceiptsStore()
+
 // Data
 const loading = ref(false)
 const error = ref<string | null>(null)

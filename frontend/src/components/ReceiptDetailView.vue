@@ -1,274 +1,171 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useUIStore } from '../stores/ui'
+import { useReceiptsStore } from '../stores/receipts'
+import AppLoading from './ui/AppLoading.vue'
+import AppButton from './ui/AppButton.vue'
+import AppImagePreview from './ui/AppImagePreview.vue'
+
+// Store
+const uiStore = useUIStore()
+const receiptsStore = useReceiptsStore()
+
+// Data
+const loading = ref(false)
+const error = ref<string | null>(null)
+const receiptData = ref<any>(null)
+const imagePreviewOpen = ref(false)
+const previewImage = ref('')
+
+// Methods
+const loadReceipt = async (id: number) => {
+  loading.value = true
+  error.value = null
+  
+  try {
+    // TODO: API呼び出しを実装
+    // const response = await receiptsStore.getReceipt(id)
+    // receiptData.value = response.data
+    
+    console.log(`Loading receipt ${id}...`)
+    
+    // デモ用のダミーデータ
+    receiptData.value = {
+      id: 1,
+      date: '2026-07-15',
+      store: '○○スーパー',
+      amount: '¥2,480',
+      category: '消耗品費',
+      status: '承認済み',
+      ocr_text: '店舗名：○○スーパー\n日付：2026年7月15日\n金額：2,480円\n商品：牛乳 1000円、パン 800円、卵 680円',
+      ai_comment: 'このレシートは日常的な生活費のため、消耗品費として分類します。',
+      tags: ['日用品', '食費'],
+      image_url: 'https://picsum.photos/800/600'
+    }
+    
+  } catch (err) {
+    error.value = 'レシート詳細の読み込みに失敗しました'
+    uiStore.showError('エラーが発生しました')
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleImagePreview = (src: string) => {
+  previewImage.value = src
+  imagePreviewOpen.value = true
+}
+
+// Lifecycle
+onMounted(() => {
+  // TODO: ルートパラメータからIDを取得してloadReceiptを呼び出す
+  const receiptId = 1; // デモ用
+  loadReceipt(receiptId)
+})
+</script>
+
 <template>
-  <div class="receipt-detail-view" data-testid="receipt-detail-view">
-    <!-- レシート情報 -->
-    <div class="receipt-info" data-testid="receipt-info">
-      <h2>レシート詳細</h2>
-      
-      <div class="info-grid">
-        <div class="info-item">
-          <label>日付</label>
-          <p>{{ formatDate(receipt.date) }}</p>
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-900">レシート詳細</h2>
+      <AppButton variant="secondary" size="sm">
+        編集
+      </AppButton>
+    </div>
+
+    <div v-if="loading" class="bg-white rounded-xl border border-gray-200 p-6">
+      <AppLoading :overlay="true" message="レシート詳細を読み込み中..." />
+    </div>
+
+    <div v-if="error" class="bg-white rounded-xl border border-gray-200 p-6 text-red-500">
+      {{ error }}
+    </div>
+
+    <div v-if="!loading && !error && receiptData" class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Receipt Image -->
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-3">レシート画像</h3>
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <img 
+              :src="receiptData.image_url" 
+              :alt="'レシート画像'" 
+              class="w-full h-auto cursor-pointer"
+              @click="handleImagePreview(receiptData.image_url)"
+            />
+          </div>
         </div>
-        <div class="info-item">
-          <label>金額</label>
-          <p>{{ formatCurrency(receipt.amount) }}</p>
-        </div>
-        
-        <div class="info-item">
-          <label>勘定科目</label>
-          <p>{{ receipt.category }}</p>
-        </div>
-        
-        <div class="info-item">
-          <label>ステータス</label>
-          <AppBadge :status="receipt.status" :text="getStatusText(receipt.status)" />
+
+        <!-- Receipt Info -->
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-3">レシート情報</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-gray-600">日付:</span>
+              <span class="font-medium">{{ receiptData.date }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">店舗名:</span>
+              <span class="font-medium">{{ receiptData.store }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">金額:</span>
+              <span class="font-medium">{{ receiptData.amount }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">勘定科目:</span>
+              <span class="font-medium">{{ receiptData.category }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">ステータス:</span>
+              <span class="font-medium">{{ receiptData.status }}</span>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div class="tags-section" data-testid="receipt-tags">
-        <label>タグ</label>
-        <div class="tags">
+
+      <!-- OCR Text -->
+      <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-3">OCRテキスト</h3>
+        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm whitespace-pre-wrap">
+          {{ receiptData.ocr_text }}
+        </div>
+      </div>
+
+      <!-- AI Comment -->
+      <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-3">AIコメント</h3>
+        <div class="bg-blue-50 rounded-lg p-4">
+          {{ receiptData.ai_comment }}
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-3">タグ</h3>
+        <div class="flex flex-wrap gap-2">
           <span 
-            v-for="tag in receipt.tags" 
-            :key="tag"
-            class="tag-badge"
-            data-testid="receipt-tag"
+            v-for="(tag, index) in receiptData.tags" 
+            :key="index"
+            class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
           >
             {{ tag }}
           </span>
         </div>
       </div>
-      
-      <div class="description-section" data-testid="receipt-description">
-        <label>説明</label>
-        <p>{{ receipt.description }}</p>
-      </div>
     </div>
 
-    <!-- 画像プレビュー -->
-    <div class="image-preview" data-testid="receipt-image-preview">
-      <h3>レシート画像</h3>
-      <AppImagePreview 
-        :src="receipt.image_url" 
-        :alt="`レシート画像 - ${receipt.id}`"
-        :open="true"
-        data-testid="receipt-image"
-        @close="$emit('close')"
-      />
-    </div>
-
-    <!-- OCR結果 -->
-    <div class="ocr-section" data-testid="receipt-ocr">
-      <h3>OCR結果</h3>
-      <div class="ocr-content">
-        <pre>{{ receipt.ocr_content }}</pre>
-      </div>
-    </div>
-
-    <!-- AIコメント -->
-    <div class="ai-comment-section" data-testid="receipt-ai-comment">
-      <h3>AIコメント</h3>
-      <div class="comment-content">
-        {{ receipt.ai_comment }}
-      </div>
-    </div>
-
-    <!-- 操作ボタン -->
-    <div class="actions" data-testid="receipt-detail-actions">
-      <AppButton 
-        v-if="receipt.status === 'pending'" 
-        data-testid="approve-receipt-button"
-        @click="approveReceiptAction"
-      >
-        承認
-      </AppButton>
-      
-      <AppButton 
-        v-if="receipt.status === 'pending'" 
-        data-testid="reject-receipt-button"
-        @click="rejectReceiptAction"
-      >
-        却下
-      </AppButton>
-      
-      <!-- 再解析ボタン (Backend API未提供のため、実装保留) -->
-      <!--
-      <AppButton 
-        @click="reprocessReceiptAction"
-        data-testid="reprocess-receipt-button"
-      >
-        再解析
-      </AppButton>
-      -->
-      
-      <AppButton 
-        data-testid="close-detail-button"
-        @click="$emit('close')"
-      >
-        閉じる
-      </AppButton>
-    </div>
+    <!-- Image Preview Modal -->
+    <AppImagePreview
+      v-model:open="imagePreviewOpen"
+      :src="previewImage"
+      title="レシート画像プレビュー"
+      @close="imagePreviewOpen = false"
+    />
   </div>
 </template>
 
-<script setup lang="ts">
-
-import { formatDate, formatCurrency } from '@/utils/currency';
-import AppBadge from '@/components/ui/AppBadge.vue';
-import AppImagePreview from '@/components/ui/AppImagePreview.vue';
-import AppButton from '@/components/ui/AppButton.vue';
-import { approveReceipt, rejectReceipt } from '@/api/receipts';
-
-// プロパティ
-const props = defineProps<{
-  receipt: any;
-  open?: boolean;
-  onClose?: () => void;
-}>();
-
-// イベント
-const emit = defineEmits(['close']);
-
-// ステータスのテキスト取得
-const getStatusText = (status: string) => {
-  const statusMap: Record<string, string> = {
-    pending: '承認待ち',
-    approved: '承認済み',
-    rejected: '却下済み'
-  };
-  
-  return statusMap[status] || status;
-};
-
-// 承認
-const approveReceiptAction = async () => {
-  try {
-    await approveReceipt(props.receipt.id);
-    // 成功時は親コンポーネントに通知
-    emit('close');
-  } catch (error) {
-    console.error('レシート承認エラー:', error);
-    // エラーメッセージの表示などはここで処理
-  }
-};
-
-// 卻下
-const rejectReceiptAction = async () => {
-  try {
-    // 却下理由を入力するモーダルを表示
-    const reason = prompt('却下理由を入力してください');
-    if (reason) {
-      await rejectReceipt(props.receipt.id, {
-        reason_code: 'USER_INPUT',
-        reason_text: reason
-      });
-      // 成功時は親コンポーネントに通知
-      emit('close');
-    }
-  } catch (error) {
-    console.error('レシート却下エラー:', error);
-    // エラーメッセージの表示などはここで処理
-  }
-};
-
-// 再解析 (Backend API未提供のため、実装保留)
-// const reprocessReceiptAction = async () => {
-//   try {
-//     await reprocessReceipt(props.receipt.id);
-//     // 成功時は親コンポーネントに通知
-//     emit('close');
-//   } catch (error) {
-//     console.error('レシート再解析エラー:', error);
-//     // エラーメッセージの表示などはここで処理
-//   }
-// };
-</script>
-
 <style scoped>
-.receipt-detail-view {
-  padding: 20px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.info-item {
-  margin-bottom: 10px;
-}
-
-.info-item label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
-}
-
-.info-item p {
-  margin: 0;
-  color: #666;
-}
-
-.tags-section {
-  margin-bottom: 20px;
-}
-
-.tags-section label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.tag-badge {
-  background-color: #e0e0e0;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8em;
-}
-
-.description-section {
-  margin-bottom: 20px;
-}
-
-.description-section label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
-}
-
-.image-preview {
-  margin-bottom: 20px;
-}
-
-.ocr-section, .ai-comment-section {
-  margin-bottom: 20px;
-}
-
-.ocr-content, .comment-content {
-  background-color: #f5f5f5;
-  padding: 15px;
-  border-radius: 4px;
-  overflow-x: auto;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
-  flex-wrap: wrap;
-}
+/* Additional styles for receipt detail view */
 </style>

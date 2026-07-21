@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import get_db_session_dep
+from app.api.v1.dependencies import get_db_session_dep, get_search_index_service
 from app.schemas.search import (
     RebuildIndexRequest,
     RebuildIndexResponse,
@@ -19,7 +19,7 @@ from app.schemas.search import (
     SearchIndexStatsResponse,
 )
 from app.core.logging import get_logger
-from app.services.search_index_service import get_search_index_service, SearchIndexService
+from app.services.search_index_service import SearchIndexService
 
 logger = get_logger(__name__)
 
