@@ -16,6 +16,8 @@ import AppTabs from './components/ui/AppTabs.vue'
 import ReceiptListView from './components/ReceiptListView.vue'
 import ReceiptDetailView from './components/ReceiptDetailView.vue'
 import DuplicateCheckView from './components/DuplicateCheckView.vue'
+import DuplicateApprovalView from './components/DuplicateApprovalView.vue'
+import DuplicateResultView from './components/DuplicateResultView.vue'
 
 const uiStore = useUIStore()
 const receiptsStore = useReceiptsStore()
@@ -33,6 +35,8 @@ const tabs = [
   { key: 'search', label: '検索' },
   { key: 'settings', label: '設定' },
   { key: 'duplicate-check', label: '重複チェック' },
+  { key: 'duplicate-approval', label: '重複承認' },
+  { key: 'duplicate-result', label: '判定結果' },
 ]
 
 const tableColumns = [
@@ -163,6 +167,16 @@ const currentView = computed(() => {
         <!-- Duplicate Check View -->
         <div v-else-if="activeTab === 'duplicate-check'" class="bg-white rounded-xl border border-gray-200 p-6">
           <DuplicateCheckView />
+        </div>
+
+        <!-- Duplicate Approval View -->
+        <div v-else-if="activeTab === 'duplicate-approval'" class="bg-white rounded-xl border border-gray-200 p-6">
+          <DuplicateApprovalView />
+        </div>
+
+        <!-- Duplicate Result View -->
+        <div v-else-if="activeTab === 'duplicate-result'" class="bg-white rounded-xl border border-gray-200 p-6">
+          <DuplicateResultView />
         </div>
 
         <!-- Demo Section: Components Showcase (when no tab is selected) -->
