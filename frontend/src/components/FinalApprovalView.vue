@@ -173,6 +173,7 @@ interface ReceiptData {
   image_url: string
   ai_comment: string
   duplicate_decision: string
+  tags: string[]
 }
 
 interface RejectForm {
