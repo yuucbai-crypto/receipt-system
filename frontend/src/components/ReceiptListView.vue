@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useUIStore } from '../stores/ui'
 import { useReceiptsStore } from '../stores/receipts'
-import AppLoading from './ui/AppLoading.vue'
 import AppTable from './ui/AppTable.vue'
+import AppLoading from './ui/AppLoading.vue'
 import AppButton from './ui/AppButton.vue'
-import AppModal from './ui/AppModal.vue'
-import ReceiptDetailView from './ReceiptDetailView.vue'
 
 // Store
 const uiStore = useUIStore()
@@ -24,44 +22,25 @@ const tableColumns = ref([
   { key: 'status', header: 'ステータス' },
 ])
 const tableRows = ref<any[]>([])
-const pagination = ref({
-  page: 1,
-  pageSize: 10,
-  total: 0,
-})
-const sort = ref({
-  by: 'date',
-  order: 'desc' as 'asc' | 'desc'
-})
-const filters = ref({
-  dateFrom: '',
-  dateTo: '',
-  category: '',
-  tag: '',
-  status: '',
-})
-
-// Modal for detail view
-const showDetailModal = ref(false)
-const selectedReceipt = ref<any>(null)
 
 // Methods
-const loadReceipts = async (page: number = 1) => {
+const loadReceipts = async () => {
   loading.value = true
   error.value = null
   
   try {
-    const response = await receiptsStore.getReceipts({
-      page,
-      pageSize: pagination.value.pageSize,
-      sortBy: sort.value.by,
-      sortOrder: sort.value.order,
-      ...filters.value,
-    })
+    // TODO: API呼び出しを実装
+    // const response = await receiptsStore.getReceipts()
+    // tableRows.value = response.data
+    console.log('Receipt list loading...')
     
-    tableRows.value = response.data.items
-    pagination.value.total = response.data.total
-    pagination.value.page = page
+    // デモ用のダミーデータ
+    tableRows.value = [
+      { id: 1, date: '2026-07-15', store: '○○スーパー', amount: '¥2,480', category: '消耗品費', status: '承認済み' },
+      { id: 2, date: '2026-07-14', store: '△△コンビニ', amount: '¥1,200', category: '旅費交通費', status: '承認済み' },
+      { id: 3, date: '2026-07-13', store: '□□書店', amount: '¥3,500', category: '新聞図書費', status: '未承認' },
+      { id: 4, date: '2026-07-12', store: '★★薬局', amount: '¥890', category: '消耗品費', status: '却下' },
+    ]
     
   } catch (err) {
     error.value = 'レシート一覧の読み込みに失敗しました'
@@ -72,42 +51,10 @@ const loadReceipts = async (page: number = 1) => {
   }
 }
 
-const handleSort = (key: string, order: 'asc' | 'desc') => {
-  sort.value.by = key
-  sort.value.order = order
-  loadReceipts(pagination.value.page)
-}
-
-const handlePageChange = (page: number) => {
-  loadReceipts(page)
-}
-
 const handleRowClick = (row: any) => {
-  selectedReceipt.value = row
-  showDetailModal.value = true
+  console.log('Row clicked:', row)
+  // TODO: 詳細画面へのナビゲーションを実装
 }
-
-const handleFilterChange = (key: string, value: string) => {
-  filters.value[key] = value
-  // Reset to first page when filtering
-  loadReceipts(1)
-}
-
-const resetFilters = () => {
-  filters.value = {
-    dateFrom: '',
-    dateTo: '',
-    category: '',
-    tag: '',
-    status: '',
-  }
-  loadReceipts(1)
-}
-
-// Watch for filter changes
-watch(filters, () => {
-  // Filtering is handled by the loadReceipts function when filters change
-}, { deep: true })
 
 // Lifecycle
 onMounted(() => {
@@ -119,84 +66,11 @@ onMounted(() => {
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold text-gray-900">レシート一覧</h2>
-      <AppButton variant="primary" size="sm" data-testid="receipt-list-add-button">
+      <AppButton variant="primary" size="sm">
         新規追加
       </AppButton>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">日付(From)</label>
-          <input
-            type="date"
-            v-model="filters.dateFrom"
-            @change="handleFilterChange('dateFrom', filters.dateFrom)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-date-from"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">日付(To)</label>
-          <input
-            type="date"
-            v-model="filters.dateTo"
-            @change="handleFilterChange('dateTo', filters.dateTo)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-date-to"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">勘定科目</label>
-          <select
-            v-model="filters.category"
-            @change="handleFilterChange('category', filters.category)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-category"
-          >
-            <option value="">すべて</option>
-            <option value="消耗品費">消耗品費</option>
-            <option value="旅費交通費">旅費交通費</option>
-            <option value="新聞図書費">新聞図書費</option>
-            <option value="通信費">通信費</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">タグ</label>
-          <input
-            type="text"
-            v-model="filters.tag"
-            @input="handleFilterChange('tag', filters.tag)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            placeholder="タグを入力"
-            data-testid="receipt-list-filter-tag"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">ステータス</label>
-          <select
-            v-model="filters.status"
-            @change="handleFilterChange('status', filters.status)"
-            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            data-testid="receipt-list-filter-status"
-          >
-            <option value="">すべて</option>
-            <option value="承認済み">承認済み</option>
-            <option value="未承認">未承認</option>
-            <option value="却下">却下</option>
-          </select>
-        </div>
-      </div>
-      
-      <div class="flex justify-end">
-        <AppButton variant="secondary" size="sm" @click="resetFilters" data-testid="receipt-list-reset-filters">
-          フィルターをリセット
-        </AppButton>
-      </div>
-    </div>
-
-    <!-- Receipt Table -->
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <AppLoading v-if="loading" :overlay="true" message="レシート一覧を読み込み中..." />
       
@@ -209,55 +83,11 @@ onMounted(() => {
         :columns="tableColumns"
         :rows="tableRows"
         row-key="id"
-        :sort-by="sort.by"
-        :sort-order="sort.order"
-        @sort="handleSort"
+        :sort-by="'date'"
+        :sort-order="'desc'"
         @row-click="handleRowClick"
-        data-testid="receipt-list-table"
       />
-
-      <!-- Pagination -->
-      <div v-if="!loading && !error && pagination.total > 0" class="mt-6 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-          {{ (pagination.page - 1) * pagination.pageSize + 1 }} - 
-          {{ Math.min(pagination.page * pagination.pageSize, pagination.total) }} / {{ pagination.total }}
-        </div>
-        <div class="flex gap-2">
-          <AppButton
-            variant="secondary"
-            size="sm"
-            :disabled="pagination.page <= 1"
-            @click="handlePageChange(pagination.page - 1)"
-            data-testid="receipt-list-prev-page"
-          >
-            前へ
-          </AppButton>
-          <AppButton
-            variant="secondary"
-            size="sm"
-            :disabled="pagination.page * pagination.pageSize >= pagination.total"
-            @click="handlePageChange(pagination.page + 1)"
-            data-testid="receipt-list-next-page"
-          >
-            次へ
-          </AppButton>
-        </div>
-      </div>
     </div>
-
-    <!-- Detail Modal -->
-    <AppModal
-      v-model="showDetailModal"
-      title="レシート詳細"
-      size="lg"
-      @close="showDetailModal = false"
-      data-testid="receipt-detail-modal"
-    >
-      <ReceiptDetailView 
-        :receipt-id="selectedReceipt?.id" 
-        v-if="showDetailModal && selectedReceipt"
-      />
-    </AppModal>
   </div>
 </template>
 

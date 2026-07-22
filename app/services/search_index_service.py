@@ -18,6 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
+if TYPE_CHECKING:
+    from app.api.v1.dependencies import get_db_session_dep
 
 if TYPE_CHECKING:
     from app.models.receipt import Receipt
@@ -541,15 +543,3 @@ class SearchIndexService:
                 last_updated=None,
                 index_size_bytes=0,
             )
-
-
-async def get_search_index_service(session) -> SearchIndexService:
-    """Dependency injection helper for SearchIndexService.
-
-    Args:
-        session: Database session.
-
-    Returns:
-        SearchIndexService instance.
-    """
-    return SearchIndexService(session)

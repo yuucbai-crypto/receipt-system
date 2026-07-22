@@ -4,18 +4,18 @@
     
     <!-- 合計金額表示 -->
     <div class="summary-cards">
-      <div class="card" data-testid="total-amount-card">
+      <div class="card" data-testid="currentMonthTotal">
         <h2>今月の合計金額</h2>
         <p>{{ formatCurrency(currentMonthTotal) }}</p>
       </div>
-      <div class="card" data-testid="yearly-amount-card">
+      <div class="card" data-testid="yearlyTotal">
         <h2>今年の合計金額</h2>
         <p>{{ formatCurrency(yearlyTotal) }}</p>
       </div>
     </div>
 
     <!-- 勘定科目別集計 -->
-    <div class="category-summary" data-testid="category-summary">
+    <div class="category-summary" data-testid="categoryTotals">
       <h2>勘定科目別集計</h2>
       <div class="category-chart">
         <div 
@@ -31,7 +31,7 @@
     </div>
 
     <!-- 月別推移グラフ -->
-    <div class="monthly-trend" data-testid="monthly-trend">
+    <div class="monthly-trend" data-testid="monthlyTrend">
       <h2>月別推移</h2>
       <div class="chart-container">
         <canvas ref="chartCanvas"></canvas>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onUnmounted } from 'vue';
 import { formatCurrency } from '@/utils/currency';
 import { getDashboardData } from '@/api/dashboard';
 
@@ -53,6 +53,7 @@ const chartCanvas = ref<HTMLCanvasElement | null>(null);
 
 // チャートインスタンス
 let chartInstance: any = null;
+let pollingTimer: any = null;
 
 // ダッシュボードデータ取得
 const fetchDashboardData = async () => {
@@ -120,9 +121,27 @@ const drawChart = (monthlyData: any[]) => {
   });
 };
 
-// 初期データ取得
+// 自動更新の開始
+const startAutoRefresh = () => {
+  // 5〜30秒の間でランダムな間隔でポーリング
+  const interval = 5000 + Math.random() * 25000; // 5〜30秒
+  
+  pollingTimer = setInterval(() => {
+    fetchDashboardData();
+  }, interval);
+};
+
+// 初期データ取得と自動更新開始
 onMounted(() => {
   fetchDashboardData();
+  startAutoRefresh();
+});
+
+// コンポーネント破棄時のクリーンアップ
+onUnmounted(() => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+  }
 });
 
 // データが変更されたら再描画

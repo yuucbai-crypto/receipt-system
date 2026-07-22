@@ -104,13 +104,13 @@ RULE-GEN-015【必須】 開発環境は以下で固定する。
 
 RULE-GEN-016【必須】 各ロールに割り当てるモデルは以下の通りとする。
 
-| ロール | 主モデル | サブモデル | 規則ID |
-|---|---|---|---|
-| Manager | nvidia/nemotron-3-ultra-550b-a55b:free | - | RULE-GEN-016-1 |
-| Backend | nvidia/nemotron-3-ultra-550b-a55b:free | - | RULE-GEN-016-2 |
-| Frontend | openai/gpt-oss-20b:free | Cohere North Mini Code | RULE-GEN-016-3 |
-| Reviewer | cohere/north-mini-code:free | - | RULE-GEN-016-4 |
-| Tester | openai/gpt-oss-20b:free | cohere/north-mini-code:free | RULE-GEN-016-5 |
+| ロール      | 主モデル                                      | サブモデル                                 | 規則ID           |
+| -------- | ----------------------------------------- | ------------------------------------- | -------------- |
+| Manager  | openrouter/poolside/laguna-m.1:free       | ollama/GLM-4.7-Flash-64k:latest       | RULE-GEN-016-1 |
+| Backend  | nvidia/nemotron-3-ultra-550b-a55b:free    | ollama/qwen3-coder:30b-96k            | RULE-GEN-016-2 |
+| Frontend | ollama/qwen3-coder:30b-96k                | ollama/north-mini-code-1.0-64k:latest | RULE-GEN-016-3 |
+| Reviewer | ollama/north-mini-code-1.0-64k:latest<br> | ollama/GLM-4.7-Flash-64k:latest       | RULE-GEN-016-4 |
+| Tester   | ollama/gpt-oss:20b-64k                    | ollama/GLM-4.7-Flash-64k:latest       | RULE-GEN-016-5 |
 
 ---
 

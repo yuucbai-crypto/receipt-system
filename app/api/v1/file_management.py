@@ -10,6 +10,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_db_session_dep
 from app.schemas.file_management import (
@@ -37,7 +38,7 @@ router = APIRouter(prefix="/file-management", tags=["File Management"])
 )
 async def sort_approved_receipt(
     request: FileSortRequest,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     service: FileSortingService = Depends(get_file_sorting_service),
 ) -> FileSortResponse:
     """Sort and rename approved receipt file.
@@ -159,7 +160,7 @@ async def list_approved_files(
 )
 async def get_approved_file_path(
     receipt_id: int,
-    session = Depends(get_db_session_dep),
+    session: AsyncSession = Depends(get_db_session_dep),
     service: FileSortingService = Depends(get_file_sorting_service),
 ) -> FileSortResponse:
     """Get expected approved file path for a receipt.
