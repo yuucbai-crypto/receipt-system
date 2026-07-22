@@ -42,14 +42,21 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onUnmounted } from 'vue';
+import Chart from 'chart.js/auto';
 import { formatCurrency } from '@/utils/currency';
 import { getDashboardData } from '@/api/dashboard';
+import { useUIStore } from '@/stores/ui';
+
+// Store
+const uiStore = useUIStore();
 
 // ダッシュボードデータ
 const currentMonthTotal = ref(0);
 const yearlyTotal = ref(0);
 const categoryTotals = ref<Record<string, number>>({});
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
+const loading = ref(false);
+const error = ref<string | null>(null);
 
 // チャートインスタンス
 let chartInstance: any = null;
@@ -57,6 +64,9 @@ let pollingTimer: any = null;
 
 // ダッシュボードデータ取得
 const fetchDashboardData = async () => {
+  loading.value = true;
+  error.value = null;
+  
   try {
     const data = await getDashboardData();
     currentMonthTotal.value = data.current_month_total;
@@ -65,8 +75,12 @@ const fetchDashboardData = async () => {
     
     // グラフ描画
     drawChart(data.monthly_trend);
-  } catch (error) {
-    console.error('ダッシュボードデータ取得エラー:', error);
+  } catch (err) {
+    console.error('ダッシュボードデータ取得エラー:', err);
+    error.value = 'ダッシュボードデータの読み込みに失敗しました';
+    uiStore.showError('ダッシュボードデータの読み込みに失敗しました');
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -87,7 +101,7 @@ const drawChart = (monthlyData: any[]) => {
   const amounts = monthlyData.map(item => item.total);
   
   // Chart.jsで描画
-  chartInstance = new (window as any).Chart(ctx, {
+  chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
