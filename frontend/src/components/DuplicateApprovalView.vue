@@ -202,7 +202,6 @@ const submitting = ref(false)
 const error = ref<string | null>(null)
 const rejected = ref(false)
 const showReasonForm = ref(false)
-const reviewType = ref<'duplicate' | 'not-duplicate' | null>(null)
 
 const receiptData = ref<ReceiptData | null>(null)
 const duplicateCheckResults = ref<DuplicateCheckResult[]>([])
@@ -256,7 +255,6 @@ const loadDuplicateCheckResults = async (receiptId: number) => {
 
 const handleDuplicate = async () => {
   reviewing.value = true
-  reviewType.value = 'duplicate'
   error.value = null
   
   if (!receiptData.value) {
@@ -272,7 +270,6 @@ const handleDuplicate = async () => {
 
 const handleNotDuplicate = async () => {
   reviewing.value = true
-  reviewType.value = 'not-duplicate'
   error.value = null
   
   if (!receiptData.value) {
@@ -290,10 +287,6 @@ const handleNotDuplicate = async () => {
         user_note: null
       }
     )
-    
-    rejected.value = false
-    showReasonForm.value = false
-    reviewType.value = null
     
     // Navigate to FinalApproval with receipt_id and duplicate_decision
     router.push({ 
