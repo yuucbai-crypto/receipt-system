@@ -160,8 +160,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useUIStore } from '../stores/ui'
 import { useRoute, useRouter } from 'vue-router'
 import { formatCurrency } from '@/utils/currency'
-import { getDashboardData } from '@/api/dashboard'
+import { ReceiptsService } from '@/api/services/ReceiptsService'
 import { DuplicateCheckService } from '@/api/services/DuplicateCheckService'
+import { ReceiptApprovalService } from '@/api/services/ReceiptApprovalService'
 import AppLoading from './ui/AppLoading.vue'
 
 // Types
@@ -222,20 +223,19 @@ const loadReceiptData = async (receiptId: number) => {
   error.value = null
   
   try {
-    // TODO: レシート詳細APIの実装が必要
-    console.log(`Loading receipt ${receiptId}...`)
+    // Call the actual API to get receipt details
+    const response = await ReceiptsService.getReceiptApiV1ReceiptsReceiptIdGet(receiptId)
     
-    // デモ用のダミーデータ
     receiptData.value = {
-      id: receiptId,
-      date: '2026-07-15',
-      store: '○○スーパー',
-      amount: 2480,
-      category: '消耗品費',
-      image_url: 'https://picsum.photos/800/600?random=1'
+      id: response.id,
+      date: response.receipt_date || '',
+      store: response.store_name || '',
+      amount: response.total_amount || 0,
+      category: response.category_name || '',
+      image_url: response.image_url || ''
     }
   } catch (err) {
-    error.value = 'データの読み込みに失敗しました'
+    error.value = 'レシートデータの読み込みに失敗しました'
     uiStore.showError('エラーが発生しました')
     console.error(err)
   } finally {
@@ -246,7 +246,7 @@ const loadReceiptData = async (receiptId: number) => {
 const loadDuplicateCheckResults = async (receiptId: number) => {
   try {
     const response = await DuplicateCheckService.getReceiptDuplicateChecksApiV1DuplicateCheckReceiptReceiptIdChecksGet(receiptId)
-    duplicateCheckResults.value = response.data || []
+    duplicateCheckResults.value = response || []
   } catch (err) {
     console.error('重複チェック結果取得エラー:', err)
     duplicateCheckResults.value = []
@@ -270,9 +270,6 @@ const handleDuplicate = async () => {
     rejected.value = true
     showReasonForm.value = true
     
-    // After user submits reason, proceed with the actual API call
-    // This will be handled in submitRejection function
-    
   } catch (err: any) {
     error.value = '判定の送信に失敗しました'
     uiStore.showError('エラーが発生しました')
@@ -294,7 +291,7 @@ const handleNotDuplicate = async () => {
   }
   
   try {
-    const session = localStorage.getItem('session') || 'demo'
+    // Call the review API with user_confirmed: false
     const response = await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
       receiptData.value.id,
       {
@@ -307,12 +304,12 @@ const handleNotDuplicate = async () => {
     showReasonForm.value = false
     reviewType.value = null
     
-    // 合格・不合格判定画面へ遷移
+    // Navigate to FinalApproval with receipt_id and duplicate_decision
     router.push({ 
       name: 'FinalApproval', 
       params: { 
-        receiptId: receiptData.value.id,
-        duplicateDecision: 'duplicate' 
+        receiptId: receiptData.value.id.toString(),
+        duplicateDecision: 'not-duplicate' 
       }
     })
     
@@ -339,8 +336,18 @@ const submitRejection = async () => {
   }
   
   try {
+    // Call the review API with user_confirmed: true and the rejection reason
+    const response = await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
+      receiptData.value.id,
+      {
+        user_confirmed: true,
+        user_note: rejectForm.value.reason_text
+      }
+    )
+    
+    // After review API success, call the rejection API with reason
     const session = localStorage.getItem('session') || 'demo'
-    const response = await (window as any).receiptApprovalService.rejectReceiptApiV1ReceiptApprovalRejectPost(
+    await ReceiptApprovalService.rejectReceiptApiV1ReceiptApprovalRejectPost(
       session,
       {
         receipt_id: receiptData.value.id,
@@ -354,7 +361,7 @@ const submitRejection = async () => {
     showReasonForm.value = false
     submitting.value = false
     
-    // ダッシュボードへ遷移
+    // Navigate to dashboard after rejection
     router.push({ name: 'Dashboard' })
     
   } catch (err: any) {
