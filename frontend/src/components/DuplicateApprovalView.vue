@@ -265,18 +265,9 @@ const handleDuplicate = async () => {
     return
   }
   
-  try {
-    // Show rejection reason form first for duplicate case
-    rejected.value = true
-    showReasonForm.value = true
-    
-  } catch (err: any) {
-    error.value = '判定の送信に失敗しました'
-    uiStore.showError('エラーが発生しました')
-    console.error(err)
-  } finally {
-    reviewing.value = false
-  }
+  // Show rejection reason form first for duplicate case
+  rejected.value = true
+  showReasonForm.value = true
 }
 
 const handleNotDuplicate = async () => {

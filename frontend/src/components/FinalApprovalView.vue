@@ -159,8 +159,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useUIStore } from '../stores/ui'
 import { useRoute, useRouter } from 'vue-router'
 import { formatCurrency } from '@/utils/currency'
-import { getDashboardData } from '@/api/dashboard'
-import { DuplicateCheckService } from '@/api/services/DuplicateCheckService'
+import { ReceiptsService } from '@/api/services/ReceiptsService'
 import { ReceiptApprovalService } from '@/api/services/ReceiptApprovalService'
 import AppLoading from './ui/AppLoading.vue'
 
@@ -222,22 +221,20 @@ const loadReceiptData = async (receiptId: number) => {
   error.value = null
   
   try {
-    // TODO: レシート詳細APIの実装が必要
-    console.log(`Loading receipt ${receiptId}...`)
+    const response = await ReceiptsService.getReceiptApiV1ReceiptsReceiptIdGet(receiptId)
     
-    // デモ用のダミーデータ
     receiptData.value = {
-      id: receiptId,
-      date: '2026-07-15',
-      store: '○○スーパー',
-      amount: 2480,
-      category: '消耗品費',
-      image_url: 'https://picsum.photos/800/600?random=2',
-      ai_comment: 'このレシートは日常的な生活費のため、消耗品費として分類します。',
+      id: response.id,
+      date: response.receipt_date || '',
+      store: response.store_name || '',
+      amount: response.total_amount || 0,
+      category: response.category_name || '',
+      image_url: response.image_url || '',
+      ai_comment: response.ai_comment || '',
       duplicate_decision: duplicateDecision.value
     }
   } catch (err) {
-    error.value = 'データの読み込みに失敗しました'
+    error.value = 'レシートデータの読み込みに失敗しました'
     uiStore.showError('エラーが発生しました')
     console.error(err)
   } finally {
