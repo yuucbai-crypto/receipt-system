@@ -1,67 +1,241 @@
+<template>
+  <div class="duplicate-approval-view" data-testid="duplicate-approval-view">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-semibold text-gray-900">重複判定・承認</h2>
+      <div v-if="loading" class="text-sm text-gray-600">
+        読み込み中...
+      </div>
+    </div>
+
+    <div v-if="loading" class="bg-white rounded-xl border border-gray-200 p-6">
+      <AppLoading :overlay="true" message="データを読み込み中..." />
+    </div>
+
+    <div v-if="error" class="bg-white rounded-xl border border-gray-200 p-6 text-red-500" data-testid="error-message">
+      {{ error }}
+    </div>
+
+    <div v-if="!loading && !error && receiptData && duplicateCheckResults" class="space-y-6">
+      <!-- Receipt Information -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">レシート情報</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <span class="text-sm text-gray-600">店舗名</span>
+            <p class="font-medium">{{ receiptData.store }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-gray-600">日付</span>
+            <p class="font-medium">{{ receiptData.date }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-gray-600">金額</span>
+            <p class="font-medium">{{ formatCurrency(receiptData.amount) }}</p>
+          </div>
+          <div>
+            <span class="text-sm text-gray-600">分類</span>
+            <p class="font-medium">{{ receiptData.category }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Images Comparison -->
+      <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">画像比較</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <span class="text-sm text-gray-600">今回のレシート</span>
+            <div class="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+              <img 
+                :src="receiptData.image_url" 
+                :alt="'今回のレシート'" 
+                class="w-full h-auto"
+              />
+            </div>
+          </div>
+          <div v-if="duplicateCheckResults.length > 0">
+            <span class="text-sm text-gray-600">重複候補（{{ duplicateCheckResults.length }}件）</span>
+            <div class="mt-2 space-y-2">
+              <div 
+                v-for="(candidate, index) in duplicateCheckResults" 
+                :key="candidate.receipt_id"
+                class="border border-gray-200 rounded-lg p-3"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm font-medium">候補 {{ index + 1 }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">総合スコア</span>
+                    <span class="text-sm font-medium" :class="getScoreClass(candidate.total_score)">
+                      {{ (candidate.total_score * 100).toFixed(1) }}%
+                    </span>
+                  </div>
+                </div>
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                  <img 
+                    :src="candidate.image_url" 
+                    :alt="'重複候補画像' + (index + 1)" 
+                    class="w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else>
+            <span class="text-sm text-gray-600">重複候補</span>
+            <p class="text-sm text-gray-500 mt-2">重複候補は見つかりませんでした。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review Buttons -->
+      <div v-if="duplicateCheckResults.length > 0" class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">重複判定</h3>
+        <div class="flex gap-4">
+          <button
+            @click="handleDuplicate"
+            :disabled="reviewing"
+            :data-testid="'btn-duplicate'"
+            class="flex-1 bg-red-600 text-white py-3 px-6 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ reviewing && reviewType === 'duplicate' ? '送信中...' : '重複' }}
+          </button>
+          <button
+            @click="handleNotDuplicate"
+            :disabled="reviewing"
+            :data-testid="'btn-not-duplicate'"
+            class="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ reviewing && reviewType === 'not-duplicate' ? '送信中...' : '重複ではない' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Reason Input Form (Rejected) -->
+      <div v-if="rejected && showReasonForm" class="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">却下理由の入力</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="reasonCode">却下理由コード</label>
+            <select
+              id="reasonCode"
+              v-model="rejectForm.reason_code"
+              :data-testid="'reason-code-select'"
+              class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+            >
+              <option value="">選択してください</option>
+              <option value="DUPLICATE">重複あり</option>
+              <option value="INVALID_FORMAT">形式不正</option>
+              <option value="LOW_QUALITY">品質不足</option>
+              <option value="AMOUNT_MISMATCH">金額不一致</option>
+              <option value="OTHER">その他</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="reasonText">却下理由テキスト</label>
+            <textarea
+              id="reasonText"
+              v-model="rejectForm.reason_text"
+              :data-testid="'reason-text-input'"
+              rows="3"
+              class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2 px-3"
+              placeholder="具体的な理由を入力してください"
+            ></textarea>
+          </div>
+          <button
+            @click="submitRejection"
+            :disabled="!isFormValid || submitting"
+            :data-testid="'btn-submit-rejection'"
+            class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ submitting ? '送信中...' : '送信' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useUIStore } from '../stores/ui'
-import { useReceiptsStore } from '../stores/receipts'
+import { useRoute, useRouter } from 'vue-router'
+import { formatCurrency } from '@/utils/currency'
+import { getDashboardData } from '@/api/dashboard'
+import { DuplicateCheckService } from '@/api/services/DuplicateCheckService'
 import AppLoading from './ui/AppLoading.vue'
-import AppButton from './ui/AppButton.vue'
-import AppModal from './ui/AppModal.vue'
-import AppInput from './ui/AppInput.vue'
+
+// Types
+interface ReceiptData {
+  id: number
+  date: string
+  store: string
+  amount: number
+  category: string
+  image_url: string
+}
+
+interface DuplicateCheckResult {
+  receipt_id: number
+  image_url: string
+  total_score: number
+  candidate_id?: number
+  score_details?: any
+  matched_fields?: string[]
+}
+
+interface RejectForm {
+  reason_code: string
+  reason_text: string
+  is_for_ai_training: boolean
+}
 
 // Store
 const uiStore = useUIStore()
-const receiptsStore = useReceiptsStore()
 const route = useRoute()
 const router = useRouter()
 
 // Data
 const loading = ref(false)
+const reviewing = ref(false)
+const submitting = ref(false)
 const error = ref<string | null>(null)
-const duplicateChecks = ref<any[]>([])
-const showApprovalModal = ref(false)
-const showRejectReasonModal = ref(false)
-const selectedCheck = ref<any>(null)
-const rejectReason = ref('')
-const isSubmitting = ref(false)
+const rejected = ref(false)
+const showReasonForm = ref(false)
+const reviewType = ref<'duplicate' | 'not-duplicate' | null>(null)
+
+const receiptData = ref<ReceiptData | null>(null)
+const duplicateCheckResults = ref<DuplicateCheckResult[]>([])
+
+const rejectForm = ref<RejectForm>({
+  reason_code: '',
+  reason_text: '',
+  is_for_ai_training: true
+})
 
 // Computed
-const sourceReceipt = computed(() => {
-  return selectedCheck.value?.source_receipt || {}
+const isFormValid = computed(() => {
+  return rejectForm.value.reason_code !== '' && rejectForm.value.reason_text.trim() !== ''
 })
 
-const targetReceipt = computed(() => {
-  return selectedCheck.value?.target_receipt || {}
-})
-
-// Methods
-const loadDuplicateChecks = async () => {
+const loadReceiptData = async (receiptId: number) => {
   loading.value = true
   error.value = null
   
   try {
-    // Get potential duplicates for the current receipt
-    const receiptId = parseInt(route.params.id as string, 10)
-    const response = await receiptsStore.getReceiptDuplicateChecks(receiptId)
+    // TODO: レシート詳細APIの実装が必要
+    console.log(`Loading receipt ${receiptId}...`)
     
-    // Format data for display
-    duplicateChecks.value = response.data.map((check: any) => ({
-      id: check.id,
-      sourceReceiptId: check.source_receipt_id,
-      targetReceiptId: check.target_receipt_id,
-      isDuplicate: check.is_duplicate,
-      compositeScore: check.composite_score,
-      scoreComponents: check.score_components,
-      sourceReceipt: check.source_receipt, // This will need to be fetched separately
-      targetReceipt: check.target_receipt, // This will need to be fetched separately
-    }))
-    
-    // Set the first duplicate check as selected if available
-    if (duplicateChecks.value.length > 0) {
-      selectedCheck.value = duplicateChecks.value[0]
+    // デモ用のダミーデータ
+    receiptData.value = {
+      id: receiptId,
+      date: '2026-07-15',
+      store: '○○スーパー',
+      amount: 2480,
+      category: '消耗品費',
+      image_url: 'https://picsum.photos/800/600?random=1'
     }
-    
   } catch (err) {
-    error.value = '重複候補の読み込みに失敗しました'
+    error.value = 'データの読み込みに失敗しました'
     uiStore.showError('エラーが発生しました')
     console.error(err)
   } finally {
@@ -69,281 +243,150 @@ const loadDuplicateChecks = async () => {
   }
 }
 
-const handleDuplicateDecision = (check: any, isDuplicate: boolean) => {
-  selectedCheck.value = check
-  // For duplicate decision, we'll show the approval modal first
-  if (isDuplicate) {
-    showApprovalModal.value = true
-  } else {
-    // For non-duplicate, we show reason input
-    showRejectReasonModal.value = true
-    rejectReason.value = ''
+const loadDuplicateCheckResults = async (receiptId: number) => {
+  try {
+    const response = await DuplicateCheckService.getReceiptDuplicateChecksApiV1DuplicateCheckReceiptReceiptIdChecksGet(receiptId)
+    duplicateCheckResults.value = response.data || []
+  } catch (err) {
+    console.error('重複チェック結果取得エラー:', err)
+    duplicateCheckResults.value = []
+    error.value = '重複チェック結果の取得に失敗しました'
   }
 }
 
-const submitApproval = async () => {
-  if (!selectedCheck.value) return
+const handleDuplicate = async () => {
+  reviewing.value = true
+  reviewType.value = 'duplicate'
+  error.value = null
   
-  isSubmitting.value = true
+  if (!receiptData.value) {
+    error.value = 'レシートデータが見つかりません'
+    reviewing.value = false
+    return
+  }
+  
   try {
-    await receiptsStore.reviewDuplicateCheck(selectedCheck.value.id, {
-      userConfirmed: true,
-      userNote: ''
-    })
+    // Show rejection reason form first for duplicate case
+    rejected.value = true
+    showReasonForm.value = true
     
-    uiStore.showSuccess('承認が完了しました')
-    showApprovalModal.value = false
-    // Reload data
-    await loadDuplicateChecks()
+    // After user submits reason, proceed with the actual API call
+    // This will be handled in submitRejection function
     
-    // Redirect to result view after approval
-    router.push(`/receipts/${selectedCheck.value.sourceReceiptId}/duplicate-result`)
-  } catch (err) {
-    uiStore.showError('承認処理に失敗しました')
+  } catch (err: any) {
+    error.value = '判定の送信に失敗しました'
+    uiStore.showError('エラーが発生しました')
     console.error(err)
   } finally {
-    isSubmitting.value = false
+    reviewing.value = false
   }
 }
 
-const submitReject = async () => {
-  if (!selectedCheck.value || !rejectReason.value.trim()) return
+const handleNotDuplicate = async () => {
+  reviewing.value = true
+  reviewType.value = 'not-duplicate'
+  error.value = null
   
-  isSubmitting.value = true
+  if (!receiptData.value) {
+    error.value = 'レシートデータが見つかりません'
+    reviewing.value = false
+    return
+  }
+  
   try {
-    await receiptsStore.reviewDuplicateCheck(selectedCheck.value.id, {
-      userConfirmed: false,
-      userNote: rejectReason.value.trim()
+    const session = localStorage.getItem('session') || 'demo'
+    const response = await DuplicateCheckService.reviewDuplicateCheckApiV1DuplicateCheckDuplicateCheckIdReviewPost(
+      receiptData.value.id,
+      {
+        user_confirmed: false,
+        user_note: null
+      }
+    )
+    
+    rejected.value = false
+    showReasonForm.value = false
+    reviewType.value = null
+    
+    // 合格・不合格判定画面へ遷移
+    router.push({ 
+      name: 'FinalApproval', 
+      params: { 
+        receiptId: receiptData.value.id,
+        duplicateDecision: 'duplicate' 
+      }
     })
     
-    uiStore.showSuccess('却下が完了しました')
-    showRejectReasonModal.value = false
-    rejectReason.value = ''
-    // Reload data
-    await loadDuplicateChecks()
-    
-    // Redirect to result view after rejection
-    router.push(`/receipts/${selectedCheck.value.sourceReceiptId}/duplicate-result`)
-  } catch (err) {
-    uiStore.showError('却下処理に失敗しました')
+  } catch (err: any) {
+    error.value = '判定の送信に失敗しました'
+    uiStore.showError('エラーが発生しました')
     console.error(err)
   } finally {
-    isSubmitting.value = false
+    reviewing.value = false
   }
 }
 
-// Lifecycle
+const submitRejection = async () => {
+  if (!isFormValid.value) {
+    error.value = '却下理由を正しく入力してください'
+    return
+  }
+  
+  submitting.value = true
+  
+  if (!receiptData.value) {
+    submitting.value = false
+    return
+  }
+  
+  try {
+    const session = localStorage.getItem('session') || 'demo'
+    const response = await (window as any).receiptApprovalService.rejectReceiptApiV1ReceiptApprovalRejectPost(
+      session,
+      {
+        receipt_id: receiptData.value.id,
+        reason_code: rejectForm.value.reason_code,
+        reason_text: rejectForm.value.reason_text,
+        is_for_ai_training: rejectForm.value.is_for_ai_training
+      }
+    )
+    
+    rejected.value = false
+    showReasonForm.value = false
+    submitting.value = false
+    
+    // ダッシュボードへ遷移
+    router.push({ name: 'Dashboard' })
+    
+  } catch (err: any) {
+    error.value = '却下理由の送信に失敗しました'
+    uiStore.showError('エラーが発生しました')
+    console.error(err)
+  } finally {
+    submitting.value = false
+  }
+}
+
+const getScoreClass = (score: number) => {
+  if (score >= 0.8) return 'text-red-600'
+  if (score >= 0.5) return 'text-yellow-600'
+  return 'text-green-600'
+}
+
 onMounted(() => {
-  loadDuplicateChecks()
+  const receiptId = parseInt((route.params.id as string) || '1', 10)
+  if (isNaN(receiptId)) {
+    error.value = '無効なレシートIDです'
+    return
+  }
+  loadReceiptData(receiptId)
+  loadDuplicateCheckResults(receiptId)
 })
 </script>
 
-<template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-900">重複候補比較・承認</h2>
-      <AppButton variant="primary" size="sm">
-        レシート追加
-      </AppButton>
-    </div>
-
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <AppLoading v-if="loading" :overlay="true" message="重複候補を読み込み中..." />
-      
-      <div v-if="error" class="text-red-500 mb-4">
-        {{ error }}
-      </div>
-
-      <div v-if="!loading && !error && duplicateChecks.length > 0" class="space-y-6">
-        <!-- Duplicate Candidate Comparison Section -->
-        <div>
-          <h3 class="text-lg font-medium text-gray-900 mb-4">重複候補比較</h3>
-          
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Current Receipt -->
-            <div class="border border-gray-200 rounded-lg p-4">
-              <h4 class="font-medium text-gray-900 mb-3">今回レシート</h4>
-              
-              <div class="space-y-3 mb-4">
-                <div v-for="(value, key) in sourceReceipt" :key="key" class="flex justify-between text-sm">
-                  <span class="text-gray-600">{{ key }}:</span>
-                  <span class="font-medium">{{ value }}</span>
-                </div>
-              </div>
-              
-              <!-- Receipt Image -->
-              <div class="mt-4">
-                <img 
-                  v-if="selectedCheck?.source_receipt?.image_path" 
-                  :src="selectedCheck.source_receipt.image_path" 
-                  alt="Receipt"
-                  class="w-full h-48 object-contain rounded border"
-                >
-                <div v-else class="bg-gray-100 border border-dashed rounded-lg w-full h-48 flex items-center justify-center text-gray-500">
-                  画像なし
-                </div>
-              </div>
-            </div>
-            
-            <!-- Duplicate Candidate -->
-            <div class="border border-gray-200 rounded-lg p-4">
-              <h4 class="font-medium text-gray-900 mb-3">重複候補レシート</h4>
-              
-              <div class="space-y-3 mb-4">
-                <div v-for="(value, key) in targetReceipt" :key="key" class="flex justify-between text-sm">
-                  <span class="text-gray-600">{{ key }}:</span>
-                  <span class="font-medium">{{ value }}</span>
-                </div>
-              </div>
-              
-              <!-- Receipt Image -->
-              <div class="mt-4">
-                <img 
-                  v-if="selectedCheck?.target_receipt?.image_path" 
-                  :src="selectedCheck.target_receipt.image_path" 
-                  alt="Receipt"
-                  class="w-full h-48 object-contain rounded border"
-                >
-                <div v-else class="bg-gray-100 border border-dashed rounded-lg w-full h-48 flex items-center justify-center text-gray-500">
-                  画像なし
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Score Components -->
-          <div class="mt-6">
-            <h4 class="font-medium text-gray-900 mb-3">スコア構成要素</h4>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div 
-                v-for="(score, key) in selectedCheck?.scoreComponents" 
-                :key="key"
-                class="bg-gray-50 rounded-lg p-3 text-center"
-              >
-                <div class="text-sm text-gray-600 mb-1">{{ key.replace('_score', '') }}</div>
-                <div class="font-medium">{{ score }}</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Total Score -->
-          <div class="mt-4 bg-blue-50 rounded-lg p-4">
-            <div class="flex justify-between items-center">
-              <span class="font-medium text-gray-900">総合スコア</span>
-              <span class="text-xl font-bold text-blue-600">{{ selectedCheck?.compositeScore }}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Decision Section -->
-        <div class="border-t border-gray-200 pt-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">判定</h3>
-          
-          <div class="flex gap-4">
-            <AppButton 
-              variant="secondary" 
-              size="lg"
-              @click="handleDuplicateDecision(selectedCheck, true)"
-              data-testid="duplicate-approve-button"
-            >
-              重複
-            </AppButton>
-            <AppButton 
-              variant="danger" 
-              size="lg"
-              @click="handleDuplicateDecision(selectedCheck, false)"
-              data-testid="duplicate-reject-button"
-            >
-              重複ではない
-            </AppButton>
-          </div>
-        </div>
-      </div>
-      
-      <div v-if="!loading && !error && duplicateChecks.length === 0" class="text-center py-8 text-gray-500">
-        重複候補が見つかりません
-      </div>
-    </div>
-
-    <!-- Approval Modal -->
-    <AppModal
-      v-model="showApprovalModal"
-      title="レシート承認確認"
-      size="md"
-      @close="showApprovalModal = false"
-    >
-      <div class="space-y-4">
-        <p>以下のレシートを承認しますか？</p>
-        
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="grid grid-cols-2 gap-2 text-sm">
-            <div><span class="font-medium">店舗名:</span> {{ targetReceipt.store_name }}</div>
-            <div><span class="font-medium">日付:</span> {{ targetReceipt.date }}</div>
-            <div><span class="font-medium">金額:</span> {{ targetReceipt.amount }}</div>
-            <div><span class="font-medium">勘定科目:</span> {{ targetReceipt.category }}</div>
-          </div>
-        </div>
-
-        <div class="flex gap-3 justify-end">
-          <AppButton 
-            variant="secondary" 
-            @click="showApprovalModal = false"
-            data-testid="approval-cancel-button"
-          >
-            キャンセル
-          </AppButton>
-          <AppButton 
-            variant="primary" 
-            @click="submitApproval"
-            :disabled="isSubmitting"
-            data-testid="approval-confirm-button"
-          >
-            {{ isSubmitting ? '処理中...' : '承認する' }}
-          </AppButton>
-        </div>
-      </div>
-    </AppModal>
-
-    <!-- Reject Reason Modal -->
-    <AppModal
-      v-model="showRejectReasonModal"
-      title="却下理由入力"
-      size="md"
-      @close="showRejectReasonModal = false"
-    >
-      <div class="space-y-4">
-        <p>レシートを却下する理由を入力してください</p>
-        
-        <AppInput
-          v-model="rejectReason"
-          label="却下理由"
-          placeholder="例: 重複していないため"
-          :rows="3"
-          data-testid="reject-reason-input"
-        />
-
-        <div class="flex gap-3 justify-end">
-          <AppButton 
-            variant="secondary" 
-            @click="showRejectReasonModal = false"
-            data-testid="reject-cancel-button"
-          >
-            キャンセル
-          </AppButton>
-          <AppButton 
-            variant="danger" 
-            @click="submitReject"
-            :disabled="!rejectReason.trim() || isSubmitting"
-            data-testid="reject-confirm-button"
-          >
-            {{ isSubmitting ? '処理中...' : '却下する' }}
-          </AppButton>
-        </div>
-      </div>
-    </AppModal>
-  </div>
-</template>
-
 <style scoped>
-/* Additional styles for duplicate approval view */
+.duplicate-approval-view {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
 </style>
