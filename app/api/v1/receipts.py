@@ -13,10 +13,13 @@ from sqlalchemy.orm import selectinload
 
 from app.api.v1.dependencies import get_db_session_dep
 from app.api.v1.schemas.receipts import (
+    ReceiptDeleteResponse,
     ReceiptDetailResponse,
     ReceiptImageResponse,
     ReceiptListRequest,
     ReceiptListResponse,
+    ReceiptReprocessRequest,
+    ReceiptReprocessResponse,
     ReceiptResponse,
 )
 from app.core.logging import get_logger
@@ -261,4 +264,113 @@ async def get_receipt_image(
         image_url=image_url,
         mime_type=receipt.mime_type,
         file_size=receipt.file_size,
+    )
+
+
+@router.post(
+    "/{receipt_id}/reprocess",
+    response_model=ReceiptReprocessResponse,
+    status_code=status.HTTP_200_OK,
+    summary="レシート再解析",
+    description="指定されたレシートを再解析します（OCR・AI解析の再実行）。",
+)
+async def reprocess_receipt(
+    receipt_id: int,
+    request: ReceiptReprocessRequest,
+    session=Depends(get_db_session_dep),
+) -> ReceiptReprocessResponse:
+    """Reprocess a receipt (re-run OCR and AI analysis).
+
+    Args:
+        receipt_id: Receipt ID.
+        request: Reprocess request with force flag.
+        session: Database session.
+
+    Returns:
+        ReceiptReprocessResponse with result.
+
+    Raises:
+        HTTPException: If receipt not found.
+    """
+    receipt = await session.get(Receipt, receipt_id)
+
+    if not receipt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Receipt {receipt_id} not found",
+        )
+
+    # Reset receipt status to pending for reprocessing
+    receipt.status = ReceiptStatus.PENDING
+    receipt.status_message = None
+    receipt.ocr_text = None
+    receipt.ocr_confidence = None
+    receipt.ocr_language = None
+    receipt.receipt_date = None
+    receipt.store_name = None
+    receipt.total_amount = None
+    receipt.tax_amount = None
+    receipt.currency = "JPY"
+    receipt.category_id = None
+    receipt.category_name = None
+    receipt.category_confidence = None
+    receipt.ai_comment = None
+    receipt.ai_model = None
+    receipt.ai_confidence = None
+    receipt.processing_started_at = None
+    receipt.processing_completed_at = None
+    receipt.retry_count = 0
+
+    await session.commit()
+    await session.refresh(receipt)
+
+    logger.info("Receipt queued for reprocessing", extra={"receipt_id": receipt_id})
+
+    return ReceiptReprocessResponse(
+        success=True,
+        receipt_id=receipt_id,
+        message=f"Receipt {receipt_id} queued for reprocessing",
+    )
+
+
+@router.delete(
+    "/{receipt_id}",
+    response_model=ReceiptDeleteResponse,
+    status_code=status.HTTP_200_OK,
+    summary="レシート削除",
+    description="指定されたレシートを削除します。",
+)
+async def delete_receipt(
+    receipt_id: int,
+    session=Depends(get_db_session_dep),
+) -> ReceiptDeleteResponse:
+    """Delete a receipt.
+
+    Args:
+        receipt_id: Receipt ID.
+        session: Database session.
+
+    Returns:
+        ReceiptDeleteResponse with result.
+
+    Raises:
+        HTTPException: If receipt not found.
+    """
+    receipt = await session.get(Receipt, receipt_id)
+
+    if not receipt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Receipt {receipt_id} not found",
+        )
+
+    await session.delete(receipt)
+    await session.commit()
+
+    logger.info("Receipt deleted", extra={"receipt_id": receipt_id})
+
+    return ReceiptDeleteResponse(
+        success=True,
+        receipt_id=receipt_id,
+        message=f"Receipt {receipt_id} deleted successfully",
     )

@@ -1,28 +1,12 @@
-"""Schemas for Receipts API."""
+"""Pydantic schemas for receipts API."""
 
 from datetime import datetime
-from typing import Optional
-
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class ReceiptListRequest(BaseModel):
-    """Request parameters for listing receipts."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    status: Optional[str] = Field(None, description="Filter by status")
-    category_id: Optional[int] = Field(None, description="Filter by category ID")
-    date_from: Optional[datetime] = Field(None, description="Filter by date from")
-    date_to: Optional[datetime] = Field(None, description="Filter by date to")
-    page: int = Field(default=1, ge=1, description="Page number")
-    page_size: int = Field(default=20, ge=1, le=100, description="Page size")
+from typing import List, Optional
+from pydantic import BaseModel
 
 
 class ReceiptResponse(BaseModel):
-    """Receipt response item."""
-
-    model_config = ConfigDict(from_attributes=True)
+    """Receipt response schema."""
 
     id: int
     original_filename: str
@@ -33,11 +17,11 @@ class ReceiptResponse(BaseModel):
     image_hash: str
     ocr_text: Optional[str] = None
     ocr_confidence: Optional[float] = None
-    ocr_language: str
-    receipt_date: Optional[datetime] = None
-    store_name: Optional[str] = None
-    total_amount: Optional[int] = None
-    tax_amount: Optional[int] = None
+    ocr_language: Optional[str] = None
+    receipt_date: datetime
+    store_name: str
+    total_amount: float
+    tax_amount: Optional[float] = None
     currency: str
     category_id: Optional[int] = None
     category_name: Optional[str] = None
@@ -50,53 +34,130 @@ class ReceiptResponse(BaseModel):
     processing_started_at: Optional[datetime] = None
     processing_completed_at: Optional[datetime] = None
     retry_count: int
-    tags: list[str] = Field(default_factory=list)
+    tags: List[str]
     created_at: datetime
     updated_at: datetime
 
+    class Config:
+        """Pydantic configuration."""
 
-class ReceiptListResponse(BaseModel):
-    """Paginated receipt list response."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    items: list[ReceiptResponse]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-
-    @classmethod
-    def create(
-        cls,
-        items: list[ReceiptResponse],
-        total: int,
-        page: int,
-        page_size: int,
-    ) -> "ReceiptListResponse":
-        """Create paginated response."""
-        total_pages = (total + page_size - 1) // page_size
-        return cls(
-            items=items,
-            total=total,
-            page=page,
-            page_size=page_size,
-            total_pages=total_pages,
-        )
+        from_attributes = True
 
 
-class ReceiptDetailResponse(ReceiptResponse):
-    """Detailed receipt response (extends list response with more details)."""
+class ReceiptDetailResponse(BaseModel):
+    """Receipt detail response schema."""
 
-    pass
+    id: int
+    original_filename: str
+    stored_filename: str
+    file_path: str
+    file_size: int
+    mime_type: str
+    image_hash: str
+    ocr_text: Optional[str] = None
+    ocr_confidence: Optional[float] = None
+    ocr_language: Optional[str] = None
+    receipt_date: datetime
+    store_name: str
+    total_amount: float
+    tax_amount: Optional[float] = None
+    currency: str
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+    category_confidence: Optional[float] = None
+    ai_comment: Optional[str] = None
+    ai_model: Optional[str] = None
+    ai_confidence: Optional[float] = None
+    status: str
+    status_message: Optional[str] = None
+    processing_started_at: Optional[datetime] = None
+    processing_completed_at: Optional[datetime] = None
+    retry_count: int
+    tags: List[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
 
 
 class ReceiptImageResponse(BaseModel):
-    """Receipt image response."""
-
-    model_config = ConfigDict(from_attributes=True)
+    """Receipt image response schema."""
 
     receipt_id: int
     image_url: str
     mime_type: str
     file_size: int
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
+
+
+class ReceiptListRequest(BaseModel):
+    """Receipt list request schema."""
+
+    page: int = 1
+    page_size: int = 20
+    status: Optional[str] = None
+    category_id: Optional[int] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
+
+
+class ReceiptListResponse(BaseModel):
+    """Receipt list response schema."""
+
+    items: List[ReceiptResponse]
+    total: int
+    page: int
+    page_size: int
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
+
+
+class ReceiptReprocessRequest(BaseModel):
+    """Receipt reprocess request schema."""
+
+    force: bool = False
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
+
+
+class ReceiptDeleteResponse(BaseModel):
+    """Receipt delete response schema."""
+
+    success: bool
+    message: str
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
+
+
+class ReceiptReprocessResponse(BaseModel):
+    """Receipt reprocess response schema."""
+
+    success: bool
+    message: str
+    receipt_id: int
+
+    class Config:
+        """Pydantic configuration."""
+
+        from_attributes = True
