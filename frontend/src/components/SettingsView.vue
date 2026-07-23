@@ -27,27 +27,13 @@ const folderPaths = ref({
 const ocrEngine = ref('')
 const aiModel = ref('')
 
-const categories = ref([
-  { id: 1, name: '消耗品費' },
-  { id: 2, name: '旅費交通費' },
-  { id: 3, name: '新聞図書費' },
-])
-
-const tags = ref([
-  { id: 1, name: '業務' },
-  { id: 2, name: '個人' },
-])
-
 const newCategoryName = ref('')
 const newTagName = ref('')
-
-// ローディング状態
-const loading = ref(false)
 
 // 設定の読み込み
 const loadSettings = async () => {
   try {
-    loading.value = true
+    uiStore.setGlobalLoading({ loading: true, message: '設定を読み込み中...' })
     await settingsStore.loadSettings()
     
     // 設定値をフォームに反映
@@ -62,7 +48,7 @@ const loadSettings = async () => {
     uiStore.showError('設定の読み込みに失敗しました')
     console.error('Failed to load settings:', error)
   } finally {
-    loading.value = false
+    uiStore.setGlobalLoading({ loading: false })
   }
 }
 
@@ -81,16 +67,18 @@ const saveSettings = async () => {
       },
       ocr_engine: ocrEngine.value,
       ai_model: aiModel.value,
+      categories: settingsStore.settings.categories || [],
+      tags: settingsStore.settings.tags || [],
     }
     
-    loading.value = true
+    uiStore.setGlobalLoading({ loading: true, message: '設定を保存中...' })
     await settingsStore.saveSettings(settings)
     uiStore.showSuccess('設定が保存されました')
   } catch (error) {
     uiStore.showError('設定の保存に失敗しました')
     console.error('Failed to save settings:', error)
   } finally {
-    loading.value = false
+    uiStore.setGlobalLoading({ loading: false })
   }
 }
 
@@ -99,17 +87,29 @@ const addCategory = () => {
   if (!newCategoryName.value.trim()) return
   
   const newCategory = {
-    id: categories.value.length > 0 ? Math.max(...categories.value.map(c => c.id)) + 1 : 1,
+    id: settingsStore.settings.categories && settingsStore.settings.categories.length > 0 ? Math.max(...settingsStore.settings.categories.map(c => c.id)) + 1 : 1,
     name: newCategoryName.value.trim(),
   }
   
-  categories.value.push(newCategory)
+  // ストアに追加
+  if (!settingsStore.settings.categories) {
+    settingsStore.settings.categories = []
+  }
+  settingsStore.settings.categories.push(newCategory)
   newCategoryName.value = ''
+  
+  // 保存
+  saveSettings()
 }
 
 // 勘定科目の削除
 const deleteCategory = (id: number) => {
-  categories.value = categories.value.filter(c => c.id !== id)
+  if (settingsStore.settings.categories) {
+    settingsStore.settings.categories = settingsStore.settings.categories.filter(c => c.id !== id)
+  }
+  
+  // 保存
+  saveSettings()
 }
 
 // タグの追加
@@ -117,17 +117,29 @@ const addTag = () => {
   if (!newTagName.value.trim()) return
   
   const newTag = {
-    id: tags.value.length > 0 ? Math.max(...tags.value.map(t => t.id)) + 1 : 1,
+    id: settingsStore.settings.tags && settingsStore.settings.tags.length > 0 ? Math.max(...settingsStore.settings.tags.map(t => t.id)) + 1 : 1,
     name: newTagName.value.trim(),
   }
   
-  tags.value.push(newTag)
+  // ストアに追加
+  if (!settingsStore.settings.tags) {
+    settingsStore.settings.tags = []
+  }
+  settingsStore.settings.tags.push(newTag)
   newTagName.value = ''
+  
+  // 保存
+  saveSettings()
 }
 
 // タグの削除
 const deleteTag = (id: number) => {
-  tags.value = tags.value.filter(t => t.id !== id)
+  if (settingsStore.settings.tags) {
+    settingsStore.settings.tags = settingsStore.settings.tags.filter(t => t.id !== id)
+  }
+  
+  // 保存
+  saveSettings()
 }
 
 // 初期化
@@ -233,7 +245,7 @@ onMounted(() => {
       
       <div class="space-y-2">
         <div 
-          v-for="category in categories" 
+          v-for="category in settingsStore.settings.categories" 
           :key="category.id"
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
           data-testid="category-item"
@@ -264,7 +276,7 @@ onMounted(() => {
       
       <div class="space-y-2">
         <div 
-          v-for="tag in tags" 
+          v-for="tag in settingsStore.settings.tags" 
           :key="tag.id"
           class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
           data-testid="tag-item"
@@ -281,7 +293,6 @@ onMounted(() => {
     <div class="flex justify-end">
       <AppButton 
         variant="primary" 
-        :loading="loading"
         @click="saveSettings"
         data-testid="save-settings-btn"
       >

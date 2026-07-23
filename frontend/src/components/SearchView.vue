@@ -7,6 +7,7 @@ import AppInput from './ui/AppInput.vue'
 import AppSelect from './ui/AppSelect.vue'
 import AppTable from './ui/AppTable.vue'
 import AppLoading from './ui/AppLoading.vue'
+import { ReceiptsService } from '@/api/services/ReceiptsService'
 
 // ストアのインスタンス化
 const uiStore = useUIStore()
@@ -45,7 +46,6 @@ const statuses = [
 
 // 検索結果
 const searchResults = ref<any[]>([])
-const loading = ref(false)
 const currentPage = ref(1)
 const totalPages = ref(1)
 const totalItems = ref(0)
@@ -63,7 +63,7 @@ const tableColumns = [
 // 検索処理
 const performSearch = async () => {
   try {
-    loading.value = true
+    uiStore.setGlobalLoading({ loading: true, message: '検索中...' })
     
     // 検索条件の構築
     const searchParams = {
@@ -72,15 +72,22 @@ const performSearch = async () => {
       date_to: dateTo.value,
       amount_min: amountMin.value ? Number(amountMin.value) : undefined,
       amount_max: amountMax.value ? Number(amountMax.value) : undefined,
-      category: categoryFilter.value,
+      category_id: categoryFilter.value,
       tag: tagFilter.value,
       status: statusFilter.value,
       page: currentPage.value,
-      per_page: 20
+      page_size: 20
     }
     
-    // API呼び出し（仮実装）
-    const results = await receiptsStore.searchReceipts(searchParams)
+    // API呼び出し
+    const results = await ReceiptsService.listReceiptsApiV1ReceiptsGet(
+      searchParams.q,
+      searchParams.date_from,
+      searchParams.date_to,
+      searchParams.category_id,
+      searchParams.page,
+      searchParams.page_size
+    )
     
     searchResults.value = results.items || []
     totalPages.value = results.total_pages || 1
@@ -91,7 +98,7 @@ const performSearch = async () => {
     uiStore.showError('検索に失敗しました')
     console.error('Search failed:', error)
   } finally {
-    loading.value = false
+    uiStore.setGlobalLoading({ loading: false })
   }
 }
 
@@ -116,11 +123,14 @@ const resetFilters = () => {
   searchResults.value = []
   totalPages.value = 1
   totalItems.value = 0
+  
+  // 初回検索を実行（リセット後に）
+  performSearch()
 }
 
 // 初期化
 onMounted(() => {
-  // 初回検索を実行（仮）
+  // 初回検索を実行
   performSearch()
 })
 </script>
@@ -233,7 +243,7 @@ onMounted(() => {
       </div>
       
       <!-- ローディング表示 -->
-      <AppLoading v-if="loading" :size="'md'" :variant="'spinner'" data-testid="search-loading" />
+      <AppLoading v-if="uiStore.globalLoading" :size="'md'" :variant="'spinner'" data-testid="search-loading" />
       
       <!-- 検索結果テーブル -->
       <div v-else>
